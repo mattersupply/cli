@@ -40,8 +40,6 @@ export async function getMatterConfig(path?: string | null): Promise<Config | un
         `.config/${MATTER_CONFIG_DEAULT_FILENAME}`,
         `${MATTER_CONFIG_PATH}/${MATTER_CONFIG_FILENAME}`,
       ])
-
-      console.log('Found: ', path)
     }
 
     if (!path) {
