@@ -1,0 +1,68 @@
+{
+  "name": "@mattersupply/cli",
+  "description": "Matter Supply CLI",
+  "version": "1.0.0-alpha.2",
+  "author": "@mattersupply.co",
+  "bin": {
+    "matter": "./bin/run"
+  },
+  "bugs": "https://github.com/mattersupply/cli/issues",
+  "dependencies": {
+    "@oclif/command": "^1",
+    "@oclif/config": "^1",
+    "@oclif/plugin-help": "^2",
+    "@types/aws-sdk": "^2.7.0",
+    "aws-sdk": "^2.656.0",
+    "chalk": "^4.0.0",
+    "find-up": "sindresorhus/find-up",
+    "js-yaml": "^3.13.1",
+    "lodash": "^4.17.15",
+    "tslib": "^1"
+  },
+  "devDependencies": {
+    "@oclif/dev-cli": "^1",
+    "@oclif/test": "^1",
+    "@types/chai": "^4",
+    "@types/chalk": "^2.2.0",
+    "@types/js-yaml": "^3.12.3",
+    "@types/lodash": "^4.14.149",
+    "@types/mocha": "^5",
+    "@types/node": "^10",
+    "chai": "^4",
+    "globby": "^10",
+    "mocha": "^5",
+    "nyc": "^14",
+    "ts-node": "^8",
+    "typescript": "^3.3"
+  },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "files": [
+    "/bin",
+    "/lib",
+    "/npm-shrinkwrap.json",
+    "/oclif.manifest.json"
+  ],
+  "homepage": "https://github.com/mattersupply/cli",
+  "keywords": [
+    "oclif"
+  ],
+  "license": "UNLICENSED",
+  "main": "lib/index.js",
+  "oclif": {
+    "commands": "./lib/commands",
+    "bin": "matter",
+    "plugins": [
+      "@oclif/plugin-help"
+    ]
+  },
+  "repository": "mattersupply/cli",
+  "scripts": {
+    "postpack": "rm -f oclif.manifest.json",
+    "prepack": "rm -rf lib && tsc -b && oclif-dev manifest && oclif-dev readme",
+    "test": "nyc --extension .ts mocha --forbid-only \"test/**/*.test.ts\"",
+    "version": "oclif-dev readme && git add README.md"
+  },
+  "types": "lib/index.d.ts"
+}
