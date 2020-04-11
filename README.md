@@ -16,27 +16,25 @@ At the core is a configuration structure for every project. Every project should
 If your config file is somewhere else, you can always set the path via `matter -c path/to/config.yml`.
 
 <!-- toc -->
-
-- [Usage](#usage)
-- [Commands](#commands)
+* [@mattersupply/cli](#mattersupplycli)
+* [Usage](#usage)
+* [Commands](#commands)
 <!-- tocstop -->
 
 # Usage
 
 <!-- usage -->
-
 ```sh-session
 $ npm install -g @mattersupply/cli
 $ matter COMMAND
 running command...
 $ matter (-v|--version|version)
-@mattersupply/cli/1.0.0-alpha.2 darwin-x64 node-v12.14.1
+@mattersupply/cli/1.0.0-alpha.3 darwin-x64 node-v12.14.1
 $ matter --help [COMMAND]
 USAGE
   $ matter COMMAND
 ...
 ```
-
 <!-- usagestop -->
 
 ## Notion
@@ -48,13 +46,12 @@ https://www.notion.so/mattersupply/CLI-ec537e40999d47ef9b5a5d7c32cf48c6
 # Commands
 
 <!-- commands -->
-
-- [`matter config:compare`](#matter-configcompare)
-- [`matter config:delete`](#matter-configdelete)
-- [`matter config:describe`](#matter-configdescribe)
-- [`matter config:get`](#matter-configget)
-- [`matter config:set`](#matter-configset)
-- [`matter help [COMMAND]`](#matter-help-command)
+* [`matter config:compare`](#matter-configcompare)
+* [`matter config:delete`](#matter-configdelete)
+* [`matter config:describe`](#matter-configdescribe)
+* [`matter config:get`](#matter-configget)
+* [`matter config:set`](#matter-configset)
+* [`matter help [COMMAND]`](#matter-help-command)
 
 ## `matter config:compare`
 
@@ -70,7 +67,7 @@ OPTIONS
 
 DESCRIPTION
   Compare Configuration values and types for multiple stages.
-  Useful when you're comparing your configuration against someone else's or prior to promoting from one stage to
+  Useful when you're comparing your configuration against someone else's or prior to promoting from one stage to 
   another, ensuring you have all necessary values.
 
 EXAMPLE
@@ -83,7 +80,7 @@ EXAMPLE
      All present types match in configurations: develop, local
 ```
 
-_See code: [src/commands/config/compare.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.2/src/commands/config/compare.ts)_
+_See code: [src/commands/config/compare.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.3/src/commands/config/compare.ts)_
 
 ## `matter config:delete`
 
@@ -110,7 +107,7 @@ EXAMPLE
      Deleted foo (local)
 ```
 
-_See code: [src/commands/config/delete.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.2/src/commands/config/delete.ts)_
+_See code: [src/commands/config/delete.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.3/src/commands/config/delete.ts)_
 
 ## `matter config:describe`
 
@@ -139,7 +136,7 @@ EXAMPLES
      ... Prints configuration values for Fonne, merged with Develop etc. in Dotenv format.
 ```
 
-_See code: [src/commands/config/describe.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.2/src/commands/config/describe.ts)_
+_See code: [src/commands/config/describe.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.3/src/commands/config/describe.ts)_
 
 ## `matter config:get`
 
@@ -166,7 +163,7 @@ EXAMPLE
      Value foo = bar (develop)
 ```
 
-_See code: [src/commands/config/get.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.2/src/commands/config/get.ts)_
+_See code: [src/commands/config/get.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.3/src/commands/config/get.ts)_
 
 ## `matter config:set`
 
@@ -193,7 +190,7 @@ EXAMPLE
      Set baz = boz (develop)
 ```
 
-_See code: [src/commands/config/set.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.2/src/commands/config/set.ts)_
+_See code: [src/commands/config/set.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.3/src/commands/config/set.ts)_
 
 ## `matter help [COMMAND]`
 
@@ -211,5 +208,4 @@ OPTIONS
 ```
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v2.2.3/src/commands/help.ts)_
-
 <!-- commandsstop -->

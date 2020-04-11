@@ -3,7 +3,7 @@ import * as fs from 'fs'
 import * as yaml from 'js-yaml'
 import * as chalk from 'chalk'
 import * as path from 'path'
-import * as findUp from 'find-up'
+import * as findUp from 'findup-sync'
 
 export const MATTER_CONFIG_PATH = `.matter`
 export const MATTER_CONFIG_FILENAME = `config.yml`
@@ -27,10 +27,21 @@ export interface Config extends Object {
   get<T = any>(path: string, defaultValue?: T): T | any
 }
 
-export async function getMatterConfig(path?: string): Promise<Config | undefined> {
+export async function getMatterConfig(path?: string | null): Promise<Config | undefined> {
   try {
     if (!path || !fs.existsSync(path)) {
-      path = await findUp(MATTER_CONFIG_DEAULT_FILENAME)
+      // Trying to find a config file by:
+      // - matter.yml
+      // - .config/matter.yml
+      // - .matter/config.yml
+      // Searching upwards from where we are right now.
+      path = findUp([
+        MATTER_CONFIG_DEAULT_FILENAME,
+        `.config/${MATTER_CONFIG_DEAULT_FILENAME}`,
+        `${MATTER_CONFIG_PATH}/${MATTER_CONFIG_FILENAME}`,
+      ])
+
+      console.log('Found: ', path)
     }
 
     if (!path) {
