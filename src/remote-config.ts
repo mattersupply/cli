@@ -1,4 +1,4 @@
-import { snakeCase, toUpper, kebabCase } from 'lodash'
+import { merge, snakeCase, toUpper, kebabCase } from 'lodash'
 import { Config } from './config'
 import { createSSMConfigManager } from './aws'
 import { SSM } from 'aws-sdk'
@@ -33,11 +33,25 @@ export async function fetchValues(stage: string, cfg?: Config) {
   const namespace = RemoteConfigurationPath.namespace(stage, cfg)
   const ssm = createSSMConfigManager(cfg)
 
-  const parameterValues = await ssm
+  let parameterValues = await ssm
     .getParametersByPath({
       Path: namespace,
     })
     .promise()
+  let nextToken = parameterValues.NextToken
+  while (nextToken) {
+    const pagedResult = await ssm
+      .getParametersByPath({
+        Path: namespace,
+        NextToken: nextToken,
+      })
+      .promise()
+    nextToken = pagedResult.NextToken
+    parameterValues = {
+      ...parameterValues,
+      Parameters: [...(pagedResult.Parameters || []), ...(parameterValues.Parameters || [])],
+    }
+  }
 
   return parameterValues
 }
