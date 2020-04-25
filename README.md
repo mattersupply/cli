@@ -49,6 +49,7 @@ https://www.notion.so/mattersupply/CLI-ec537e40999d47ef9b5a5d7c32cf48c6
 * [`matter config:compare`](#matter-configcompare)
 * [`matter config:delete`](#matter-configdelete)
 * [`matter config:describe`](#matter-configdescribe)
+* [`matter config:read`](#matter-configread)
 * [`matter config:get`](#matter-configget)
 * [`matter config:set`](#matter-configset)
 * [`matter help [COMMAND]`](#matter-help-command)
@@ -67,7 +68,7 @@ OPTIONS
 
 DESCRIPTION
   Compare Configuration values and types for multiple stages.
-  Useful when you're comparing your configuration against someone else's or prior to promoting from one stage to 
+  Useful when you're comparing your configuration against someone else's or prior to promoting from one stage to
   another, ensuring you have all necessary values.
 
 EXAMPLE
@@ -195,6 +196,30 @@ EXAMPLE
 ```
 
 _See code: [src/commands/config/set.ts](https://github.com/mattersupply/cli/blob/v0.0.2/src/commands/config/set.ts)_
+
+## `matter config:read`
+
+Import configuration entries from multiple stages to a configuration file.
+
+```
+USAGE
+  $ matter config:read
+
+OPTIONS
+  -c, --config=config  [default: matter.yml] Path to config file.
+  -s, --stage=stage    (required) Stage(s) (environment).
+  -i, --input=input    (required) File to read.
+
+DESCRIPTION
+  Read configuration from a file as default a dotfile.
+
+EXAMPLE
+  $ matter config:read -s local -i .env.local
+    Reading values for environment (develop, local)
+    Set value SOME_VALUE=SOME_VALUE in Development (local)
+```
+
+_See code: [src/commands/config/read.ts](https://github.com/mattersupply/cli/blob/v0.0.2/src/commands/config/read.ts)_
 
 ## `matter help [COMMAND]`
 

@@ -2,7 +2,6 @@ import { get, defaultsDeep } from 'lodash'
 import * as fs from 'fs'
 import * as yaml from 'js-yaml'
 import * as chalk from 'chalk'
-import * as path from 'path'
 import * as findUp from 'findup-sync'
 
 export const MATTER_CONFIG_PATH = `.matter`
