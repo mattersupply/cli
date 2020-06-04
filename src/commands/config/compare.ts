@@ -2,7 +2,7 @@ import { flatMap, uniq } from 'lodash'
 import { flags } from '@oclif/command'
 import * as chalk from 'chalk'
 import { BaseCommand } from '../../command'
-import { fetchValues, descriptionsByKey } from '../../remote-config'
+import { fetchValues, descriptionsByKey, fetchValuesByStage } from '../../remote-config'
 import { createSSMConfigManager } from '../../aws'
 import { SSM } from 'aws-sdk'
 
@@ -56,7 +56,7 @@ Useful when you're comparing your configuration against someone else's or prior 
     const configurationsByStage: { [key: string]: { [key: string]: SSM.Parameter } } = {}
     const configurations = await Promise.all(
       stages.map(async (stage) => {
-        const values = await fetchValues(stage, this.cfg)
+        const values = await fetchValuesByStage(stage, this.cfg)
         const parameterList = values.Parameters
         if (parameterList) {
           const keyed = descriptionsByKey(parameterList, stage, this.cfg)

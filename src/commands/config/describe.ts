@@ -2,13 +2,13 @@ import { toUpper, snakeCase, defaults } from 'lodash'
 import { flags } from '@oclif/command'
 import { BaseCommand } from '../../command'
 
-import * as SSM from 'aws-sdk/clients/ssm'
 import * as chalk from 'chalk'
-import { createSSMConfigManager } from '../../aws'
-import { safeDump } from 'js-yaml'
-import { RemoteConfigurationPath, fetchValues, descriptionsByKey } from '../../remote-config'
+import { fetchValues, combineValues, RemoteConfigurationFormatter } from '../../remote-config'
+import { writeFileSync } from 'fs'
 
 export class DescribeCommand extends BaseCommand {
+  static aliases = ['config:print']
+
   static description = `
 Print configuration values for one or multiple stages.
 When used with multiple environments and a format option, then the objects will be merged in order of appearance.
@@ -35,6 +35,10 @@ This allows us to also fetch default values from another environment, or have lo
       char: 's',
       description: 'Stage (environment) to print.',
     }),
+    output: flags.string({
+      char: 'o',
+      description: 'Output filed path',
+    }),
   }
 
   static args = [...BaseCommand.args]
@@ -42,23 +46,25 @@ This allows us to also fetch default values from another environment, or have lo
   async run() {
     const { flags } = this.parse(DescribeCommand)
 
-    const fetchedParameters = await Promise.all(
-      flags.stage.map(async (stage) => ({ stage, values: await this.fetchValues(stage) }))
-    )
-
-    const parameters = fetchedParameters.reduce<{ [key: string]: any }>((acc, value) => {
-      acc[value.stage] = value.values
-      return acc
-    }, {})
+    const parameters = await fetchValues(flags.stage, this.cfg)
 
     // this.log('information', 'info')
     // this.log('uh oh!', 'error')
-    if (flags.format) {
-      const merged = this.mergeDescriptions(parameters)
-      if (flags.format === 'dotenv') {
-        this.printDescriptionAsDotenv(merged)
-      } else if (flags.format === 'yaml') {
-        this.log(safeDump(merged))
+    if (flags.format || flags.output) {
+      const format = flags.format || 'dotenv'
+      let output = ''
+      const merged = combineValues(parameters, this.cfg)
+      if (format === 'dotenv') {
+        output = RemoteConfigurationFormatter.dotenv(merged)
+      } else if (format === 'yaml') {
+        output = RemoteConfigurationFormatter.yaml(merged)
+      }
+
+      if (flags.output) {
+        writeFileSync(flags.output, Buffer.from(output))
+        this.log(`Wrote values to: ${chalk.green.bold(flags.output)}`)
+      } else {
+        this.log(output)
       }
     } else {
       Object.entries(parameters).map(([stage, params]) => {
@@ -70,35 +76,5 @@ This allows us to also fetch default values from another environment, or have lo
         this.log(params)
       })
     }
-  }
-
-  async fetchValues(stage: string) {
-    return fetchValues(stage, this.cfg)
-  }
-
-  printDescriptionAsDotenv(values: { [key: string]: SSM.Parameter }) {
-    Object.entries(values).map(([key, parameter]) => {
-      if (!parameter.Name) {
-        return
-      }
-
-      const value = parameter.Value
-      this.log(`# Type: ${parameter.Type}, Version: ${parameter.Version}, Key: ${parameter.Name}`)
-      this.log(`${toUpper(snakeCase(key))}=${value}`)
-    })
-  }
-
-  descriptionsByKey(parameters: SSM.ParameterList, stage: string) {
-    return descriptionsByKey(parameters, stage, this.cfg)
-  }
-
-  mergeDescriptions(descriptions: { [key: string]: SSM.GetParametersByPathResult }) {
-    // Reduce over all stages
-    const keyedDescriptions = Object.keys(descriptions).map((stage) => {
-      return this.descriptionsByKey(descriptions[stage].Parameters || [], stage)
-    })
-
-    const merged = defaults(keyedDescriptions[0], ...keyedDescriptions)
-    return merged
   }
 }
