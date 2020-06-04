@@ -29,7 +29,7 @@ $ npm install -g @mattersupply/cli
 $ matter COMMAND
 running command...
 $ matter (-v|--version|version)
-@mattersupply/cli/1.0.0-alpha.5 darwin-x64 node-v12.14.1
+@mattersupply/cli/0.1.0 darwin-x64 node-v12.14.1
 $ matter --help [COMMAND]
 USAGE
   $ matter COMMAND
@@ -80,7 +80,7 @@ EXAMPLE
      All present types match in configurations: develop, local
 ```
 
-_See code: [src/commands/config/compare.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.5/src/commands/config/compare.ts)_
+_See code: [src/commands/config/compare.ts](https://github.com/mattersupply/cli/blob/v0.1.0/src/commands/config/compare.ts)_
 
 ## `matter config:delete`
 
@@ -107,7 +107,7 @@ EXAMPLE
      Deleted foo (local)
 ```
 
-_See code: [src/commands/config/delete.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.5/src/commands/config/delete.ts)_
+_See code: [src/commands/config/delete.ts](https://github.com/mattersupply/cli/blob/v0.1.0/src/commands/config/delete.ts)_
 
 ## `matter config:describe`
 
@@ -119,6 +119,7 @@ USAGE
 
 OPTIONS
   -c, --config=config     [default: matter.yml] Path to config file.
+  -o, --output=output     Output filed path
   -s, --stage=stage       (required) Stage (environment) to print.
   --format=(yaml|dotenv)  Output parameters as dotenv or yaml file.
 
@@ -126,6 +127,9 @@ DESCRIPTION
   Print configuration values for one or multiple stages.
   When used with multiple environments and a format option, then the objects will be merged in order of appearance.
   This allows us to also fetch default values from another environment, or have local overrides.
+
+ALIASES
+  $ matter config:print
 
 EXAMPLES
   $ matter config:describe -s develop
@@ -136,7 +140,7 @@ EXAMPLES
      ... Prints configuration values for Fonne, merged with Develop etc. in Dotenv format.
 ```
 
-_See code: [src/commands/config/describe.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.5/src/commands/config/describe.ts)_
+_See code: [src/commands/config/describe.ts](https://github.com/mattersupply/cli/blob/v0.1.0/src/commands/config/describe.ts)_
 
 ## `matter config:get`
 
@@ -163,7 +167,7 @@ EXAMPLE
      Value foo = bar (develop)
 ```
 
-_See code: [src/commands/config/get.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.5/src/commands/config/get.ts)_
+_See code: [src/commands/config/get.ts](https://github.com/mattersupply/cli/blob/v0.1.0/src/commands/config/get.ts)_
 
 ## `matter config:set`
 
@@ -190,7 +194,7 @@ EXAMPLE
      Set baz = boz (develop)
 ```
 
-_See code: [src/commands/config/set.ts](https://github.com/mattersupply/cli/blob/v1.0.0-alpha.5/src/commands/config/set.ts)_
+_See code: [src/commands/config/set.ts](https://github.com/mattersupply/cli/blob/v0.1.0/src/commands/config/set.ts)_
 
 ## `matter help [COMMAND]`
 
