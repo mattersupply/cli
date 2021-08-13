@@ -12,21 +12,26 @@ export interface RemoteConfigurationEntry {
 }
 
 export namespace RemoteConfigurationPath {
-  export function namespace(stage: string, config?: Config) {
-    return `/${config?.get('app.name')}/${stage}/`
+  export function namespace(stage?: string, config?: Config) {
+    return `/${config ? `${config?.get('app.name')}/` : ''}${stage ? `${stage}/` : ''}`
   }
 
-  export function pathFromKey(key: string, stage: string, config?: Config) {
-    return `${namespace(stage, config)}${kebabCase(key)}`
+  export function pathFromKey(
+    key: string,
+    stage?: string,
+    config?: Config,
+    addNamespace: boolean = false
+  ) {
+    const transformedKey = key
+      .split('/')
+      .map((v) => kebabCase(v))
+      .join('/')
+      .replace(/\/\//, '/')
+    return `${addNamespace ? namespace(stage, config) : ''}${transformedKey}`
   }
 
   export function keyFromPath(path: string, stage: string, config?: Config) {
     return path.replace(namespace(stage, config), '')
-  }
-
-  export function dotenvKeyFromPath(path: string, stage: string, config?: Config) {
-    const key = keyFromPath(path, stage, config)
-    return toUpper(snakeCase(key))
   }
 }
 
@@ -39,8 +44,10 @@ export namespace RemoteConfigurationFormatter {
       }
 
       const value = parameter.Value
+      const keySegments = key.split('/').map((v) => toUpper(snakeCase(v)))
+
       output += `# Type: ${parameter.Type}, Version: ${parameter.Version}, Key: ${parameter.Name}\n`
-      output += `${toUpper(snakeCase(key))}=${value}\n`
+      output += `${keySegments.join('__')}=${value}\n`
     })
 
     return output
@@ -71,6 +78,7 @@ export async function fetchValuesByStage(stage: string, cfg?: Config) {
   let parameterValues = await ssm
     .getParametersByPath({
       Path: namespace,
+      Recursive: true,
     })
     .promise()
   let nextToken = parameterValues.NextToken
