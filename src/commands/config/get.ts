@@ -54,7 +54,7 @@ Get configuration entries from multiple stages.`
         entries.map(async (entry: string) => {
           const value = await ssm
             .getParameter({
-              Name: RemoteConfigurationPath.pathFromKey(entry, stage, this.cfg),
+              Name: RemoteConfigurationPath.pathFromKey(entry, stage, this.cfg, true),
             })
             .promise()
 

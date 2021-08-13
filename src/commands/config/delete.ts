@@ -54,7 +54,7 @@ Deletes configuration entries across multiple stages.`
         entries.map(async (entry: string) => {
           await ssm
             .deleteParameter({
-              Name: RemoteConfigurationPath.pathFromKey(entry, stage, this.cfg),
+              Name: RemoteConfigurationPath.pathFromKey(entry, stage, this.cfg, true),
             })
             .promise()
 

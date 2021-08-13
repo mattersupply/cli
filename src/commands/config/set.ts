@@ -54,7 +54,7 @@ Set configuration entries from multiple stages.`
   async setConfigValues(stages: string[], entries: RemoteConfigurationEntry[]) {
     const transformedValues: RemoteConfigurationEntry[] = entries.map((entry) => {
       // Sanitizing input.
-      entry.key = kebabCase(entry.key)
+      entry.key = RemoteConfigurationPath.pathFromKey(entry.key)
       return entry
     })
 
@@ -70,7 +70,7 @@ Set configuration entries from multiple stages.`
         return transformedValues.map(async (entry: RemoteConfigurationEntry) => {
           await ssm
             .putParameter({
-              Name: RemoteConfigurationPath.pathFromKey(entry.key, stage, this.cfg),
+              Name: RemoteConfigurationPath.pathFromKey(entry.key, stage, this.cfg, true),
               Description: entry.description || '',
               Value: entry.value,
               Type: entry.type || 'String',
