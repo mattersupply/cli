@@ -86,6 +86,7 @@ export async function fetchValuesByStage(stage: string, cfg?: Config) {
     const pagedResult = await ssm
       .getParametersByPath({
         Path: namespace,
+        Recursive: true,
         NextToken: nextToken,
       })
       .promise()
