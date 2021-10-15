@@ -2,7 +2,11 @@ import { kebabCase, flatMap } from 'lodash'
 import { flags } from '@oclif/command'
 import * as chalk from 'chalk'
 import { BaseCommand } from '../../command'
-import { RemoteConfigurationEntry, RemoteConfigurationPath } from '../../remote-config'
+import {
+  RemoteConfigurationEntry,
+  RemoteConfigurationPath,
+  RemoteConfigurationValue,
+} from '../../remote-config'
 import { createSSMConfigManager } from '../../aws'
 
 export class SetCommand extends BaseCommand {
@@ -55,6 +59,8 @@ Set configuration entries from multiple stages.`
     const transformedValues: RemoteConfigurationEntry[] = entries.map((entry) => {
       // Sanitizing input.
       entry.key = RemoteConfigurationPath.pathFromKey(entry.key)
+      entry.value = RemoteConfigurationValue.formatEntryValue(entry.value)
+
       return entry
     })
 

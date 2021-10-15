@@ -1,5 +1,5 @@
 import { merge, defaults, snakeCase, toUpper, kebabCase } from 'lodash'
-import { Config } from './config'
+import { Config, NULL_VALUE } from './config'
 import { createSSMConfigManager } from './aws'
 import { SSM } from 'aws-sdk'
 import { safeDump } from 'js-yaml'
@@ -32,6 +32,26 @@ export namespace RemoteConfigurationPath {
 
   export function keyFromPath(path: string, stage: string, config?: Config) {
     return path.replace(namespace(stage, config), '')
+  }
+}
+
+export namespace RemoteConfigurationValue {
+  export function formatEntryValue(value: any, config?: Config) {
+    if (typeof value === 'string') {
+      if (value === '') {
+        return NULL_VALUE
+      }
+    }
+
+    return value
+  }
+
+  export function parseConfigValue(value: any, config?: Config) {
+    if (value === NULL_VALUE) {
+      return ''
+    }
+
+    return value
   }
 }
 
@@ -120,6 +140,8 @@ export function descriptionsByKey(parameters: SSM.ParameterList, stage: string, 
     if (!param.Name) {
       throw new Error(`Parameter without a name found.`)
     }
+
+    param.Value = RemoteConfigurationValue.parseConfigValue(param.Value)
 
     parameters[RemoteConfigurationPath.keyFromPath(param.Name, stage, cfg)] = param
     return parameters
