@@ -2,7 +2,7 @@ import { flatMap } from 'lodash'
 import { flags } from '@oclif/command'
 import * as chalk from 'chalk'
 import { BaseCommand } from '../../command'
-import { RemoteConfigurationPath } from '../../remote-config'
+import { RemoteConfigurationPath, RemoteConfigurationValue } from '../../remote-config'
 import { createSSMConfigManager } from '../../aws'
 
 export class GetCommand extends BaseCommand {
@@ -59,7 +59,9 @@ Get configuration entries from multiple stages.`
             .promise()
 
           this.log(
-            `Value ${chalk.green.bold(entry)} = ${chalk.green(value.Parameter?.Value)} (${stage})`
+            `Value ${chalk.green.bold(entry)} = ${chalk.green(
+              RemoteConfigurationValue.parseConfigValue(value.Parameter?.Value, this.cfg)
+            )} (${stage})`
           )
         })
       )

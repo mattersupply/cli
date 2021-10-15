@@ -2,8 +2,10 @@ import { get, defaultsDeep } from 'lodash'
 import * as fs from 'fs'
 import * as yaml from 'js-yaml'
 import * as chalk from 'chalk'
-import * as path from 'path'
 import * as findUp from 'findup-sync'
+
+// This is because SSM does not support empty values.
+export const NULL_VALUE = `NULL`
 
 export const MATTER_CONFIG_PATH = `.matter`
 export const MATTER_CONFIG_FILENAME = `config.yml`
