@@ -29,7 +29,7 @@ $ npm install -g @mattersupply/cli
 $ matter COMMAND
 running command...
 $ matter (-v|--version|version)
-@mattersupply/cli/0.0.3 darwin-x64 node-v12.14.1
+@mattersupply/cli/0.0.4 darwin-x64 node-v12.14.1
 $ matter --help [COMMAND]
 USAGE
   $ matter COMMAND
@@ -80,7 +80,7 @@ EXAMPLE
      All present types match in configurations: develop, local
 ```
 
-_See code: [src/commands/config/compare.ts](https://github.com/mattersupply/cli/blob/v0.0.3/src/commands/config/compare.ts)_
+_See code: [src/commands/config/compare.ts](https://github.com/mattersupply/cli/blob/v0.0.4/src/commands/config/compare.ts)_
 
 ## `matter config:delete`
 
@@ -107,7 +107,7 @@ EXAMPLE
      Deleted foo (local)
 ```
 
-_See code: [src/commands/config/delete.ts](https://github.com/mattersupply/cli/blob/v0.0.3/src/commands/config/delete.ts)_
+_See code: [src/commands/config/delete.ts](https://github.com/mattersupply/cli/blob/v0.0.4/src/commands/config/delete.ts)_
 
 ## `matter config:describe`
 
@@ -140,7 +140,7 @@ EXAMPLES
      ... Prints configuration values for Fonne, merged with Develop etc. in Dotenv format.
 ```
 
-_See code: [src/commands/config/describe.ts](https://github.com/mattersupply/cli/blob/v0.0.3/src/commands/config/describe.ts)_
+_See code: [src/commands/config/describe.ts](https://github.com/mattersupply/cli/blob/v0.0.4/src/commands/config/describe.ts)_
 
 ## `matter config:get`
 
@@ -167,7 +167,7 @@ EXAMPLE
      Value foo = bar (develop)
 ```
 
-_See code: [src/commands/config/get.ts](https://github.com/mattersupply/cli/blob/v0.0.3/src/commands/config/get.ts)_
+_See code: [src/commands/config/get.ts](https://github.com/mattersupply/cli/blob/v0.0.4/src/commands/config/get.ts)_
 
 ## `matter config:set`
 
@@ -194,7 +194,7 @@ EXAMPLE
      Set baz = boz (develop)
 ```
 
-_See code: [src/commands/config/set.ts](https://github.com/mattersupply/cli/blob/v0.0.3/src/commands/config/set.ts)_
+_See code: [src/commands/config/set.ts](https://github.com/mattersupply/cli/blob/v0.0.4/src/commands/config/set.ts)_
 
 ## `matter help [COMMAND]`
 
