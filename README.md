@@ -49,7 +49,9 @@ https://www.notion.so/mattersupply/CLI-ec537e40999d47ef9b5a5d7c32cf48c6
 * [`matter config:compare`](#matter-configcompare)
 * [`matter config:delete`](#matter-configdelete)
 * [`matter config:describe`](#matter-configdescribe)
+* [`matter config:export`](#matter-configexport)
 * [`matter config:get`](#matter-configget)
+* [`matter config:import`](#matter-configimport)
 * [`matter config:set`](#matter-configset)
 * [`matter help [COMMAND]`](#matter-help-command)
 
@@ -100,11 +102,6 @@ DESCRIPTION
 
 EXAMPLE
   $ matter config:delete -s develop -s local -e foo -e baz
-     Deleting Values: mattersupplyco (develop, local)
-     Deleted baz (develop)
-     Deleted foo (develop)
-     Deleted baz (local)
-     Deleted foo (local)
 ```
 
 _See code: [src/commands/config/delete.ts](https://github.com/mattersupply/cli/blob/v0.0.5/src/commands/config/delete.ts)_
@@ -118,29 +115,54 @@ USAGE
   $ matter config:describe
 
 OPTIONS
-  -c, --config=config     [default: matter.yml] Path to config file.
-  -o, --output=output     Output filed path
-  -s, --stage=stage       (required) Stage (environment) to print.
-  --format=(yaml|dotenv)  Output parameters as dotenv or yaml file.
+  -c, --config=config  [default: matter.yml] Path to config file.
+  -s, --stage=stage    (required) Stage(s) (environment) to print.
+  --raw                Raw output as the values are stored by the provider (if available).
 
 DESCRIPTION
   Print configuration values for one or multiple stages.
-  When used with multiple environments and a format option, then the objects will be merged in order of appearance.
-  This allows us to also fetch default values from another environment, or have local overrides.
+  Can be used with --raw to show the values as they're stored by the provider
 
 ALIASES
   $ matter config:print
 
 EXAMPLES
   $ matter config:describe -s develop
-     ... Prints all SSM configuration values
-  $ matter config:describe -s fonne develop --format yaml
-     ... Prints configuration values for Fonne, merged with Develop in YAML format.
-  $ matter config:describe -s fonne develop common build more andmore yetevenmore --format dotenv
-     ... Prints configuration values for Fonne, merged with Develop etc. in Dotenv format.
+     ... Prints all configuration values for the develop environment
+  $ matter config:describe -s fonne develop --raw
+     ... Prints all configuration values for the fonne and develop environment in their stored format
 ```
 
 _See code: [src/commands/config/describe.ts](https://github.com/mattersupply/cli/blob/v0.0.5/src/commands/config/describe.ts)_
+
+## `matter config:export`
+
+Export configuration values for one or multiple stages.
+
+```
+USAGE
+  $ matter config:export
+
+OPTIONS
+  -c, --config=config     [default: matter.yml] Path to config file.
+  -o, --output=output     Output filed path
+  -s, --stage=stage       (required) Stage(s) (environment) to print.
+  --format=(yaml|dotenv)  [default: dotenv] Output parameters as dotenv or yaml file.
+
+DESCRIPTION
+  Export configuration values for one or multiple stages.
+  When used with multiple environments, then the objects will be merged in order of appearance.
+  This allows us to also fetch default values from another environment, or have local overrides.
+
+EXAMPLES
+  $ matter config:export -s develop
+     ... Export all values for the develop environment, defaults to dotenv format
+  $ matter config:describe -s fonne develop --format yaml
+     ... Export all values for the fonne and develop environment, in YAML. Overrides values from develop with values 
+  from fonne.
+```
+
+_See code: [src/commands/config/export.ts](https://github.com/mattersupply/cli/blob/v0.0.5/src/commands/config/export.ts)_
 
 ## `matter config:get`
 
@@ -168,6 +190,29 @@ EXAMPLE
 ```
 
 _See code: [src/commands/config/get.ts](https://github.com/mattersupply/cli/blob/v0.0.5/src/commands/config/get.ts)_
+
+## `matter config:import`
+
+Import configuration values for one or multiple stages.
+
+```
+USAGE
+  $ matter config:import
+
+OPTIONS
+  -c, --config=config  [default: matter.yml] Path to config file.
+  -i, --input=input    (required) Input file path
+  -s, --stage=stage    (required) Stage(s) (environment) to print.
+
+DESCRIPTION
+  Import configuration values for one or multiple stages.
+
+EXAMPLE
+  $ matter config:import -s develop -i .env
+     ... Imports and sets all values from .env to develop environment
+```
+
+_See code: [src/commands/config/import.ts](https://github.com/mattersupply/cli/blob/v0.0.5/src/commands/config/import.ts)_
 
 ## `matter config:set`
 
