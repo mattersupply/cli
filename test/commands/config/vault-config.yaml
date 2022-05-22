@@ -1,0 +1,11 @@
+app:
+  name: test
+
+providers:
+  vault:
+    address: https://vault.internal.msco.dev
+    mountPoint: projects
+    envSecret: env
+
+config:
+  provider: vault

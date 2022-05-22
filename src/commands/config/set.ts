@@ -1,13 +1,8 @@
-import { kebabCase, flatMap } from 'lodash'
 import { flags } from '@oclif/command'
-import * as chalk from 'chalk'
+import chalk from 'chalk'
 import { BaseCommand } from '../../command'
-import {
-  RemoteConfigurationEntry,
-  RemoteConfigurationPath,
-  RemoteConfigurationValue,
-} from '../../remote-config'
-import { createSSMConfigManager } from '../../aws'
+import { RemoteConfigurationEntry } from '../../config/aws/utils'
+import { getConfigProvider } from '../../config/factory'
 
 export class SetCommand extends BaseCommand {
   static description = `
@@ -56,39 +51,29 @@ Set configuration entries from multiple stages.`
   }
 
   async setConfigValues(stages: string[], entries: RemoteConfigurationEntry[]) {
-    const transformedValues: RemoteConfigurationEntry[] = entries.map((entry) => {
-      // Sanitizing input.
-      entry.key = RemoteConfigurationPath.pathFromKey(entry.key)
-      entry.value = RemoteConfigurationValue.formatEntryValue(entry.value)
-
-      return entry
-    })
-
-    const ssm = createSSMConfigManager(this.cfg)
     this.log(
       `Setting Values: ${chalk.green.bold(this.cfg?.get('app.name'))} (${chalk.green(
         stages.join(', ')
       )})`
     )
 
-    await Promise.all(
-      flatMap(stages, async (stage) => {
-        return transformedValues.map(async (entry: RemoteConfigurationEntry) => {
-          await ssm
-            .putParameter({
-              Name: RemoteConfigurationPath.pathFromKey(entry.key, stage, this.cfg, true),
-              Description: entry.description || '',
-              Value: entry.value,
-              Type: entry.type || 'String',
-              Overwrite: true,
-            })
-            .promise()
+    if (!this.cfg) {
+      throw new Error('Config is required.')
+    }
 
-          this.log(`Set ${chalk.green.bold(entry.key)} = ${chalk.bold(entry.value)} (${stage})`)
+    const configProvider = getConfigProvider(this.cfg, this)
+    const values = await configProvider?.setValues(stages, entries)
+    if (!values) {
+      throw new Error('Could not find values.')
+    }
 
-          return
-        })
+    stages.map((stage) => {
+      this.log(`Written values for ${chalk.green(stage)}`)
+
+      const configValues = values[stage] || []
+      configValues.map((value) => {
+        this.log(`\t${chalk.green.bold(value.key)}: ${chalk.green(value.value)}`)
       })
-    )
+    })
   }
 }

@@ -2,7 +2,7 @@ import { get, defaultsDeep } from 'lodash'
 import * as fs from 'fs'
 import * as yaml from 'js-yaml'
 import * as chalk from 'chalk'
-import * as findUp from 'findup-sync'
+import findUp from 'findup-sync'
 
 // This is because SSM does not support empty values.
 export const NULL_VALUE = `NULL`
@@ -18,15 +18,12 @@ const ConfigDefaults = {
     // name: '...' < This must be provided.
     org: `mattersupply`,
   },
-  aws: {
-    region: `us-east-1`,
-    profile: `default`,
-  },
+  providers: {},
   environments: [`develop`, `staging`, `production`],
 }
 
 export interface Config extends Object {
-  get<T = any>(path: string, defaultValue?: T): T | any
+  get<T = any>(path: string, defaultValue?: T): T | Config | any
 }
 
 export async function getMatterConfig(path?: string | null): Promise<Config | undefined> {
@@ -52,9 +49,21 @@ export async function getMatterConfig(path?: string | null): Promise<Config | un
     const data = yaml.safeLoad(fileContents)
     defaultsDeep(data, ConfigDefaults)
 
-    data.get = function <T = any>(path: string, defaultValue?: T): T | any {
-      return get(data, path, defaultValue)
+    const getter = function <T = any>(this: Config, path: string, defaultValue?: T): T | any {
+      const ret = get(this, path, defaultValue)
+
+      if (ret instanceof Object) {
+        ret.get = getter
+      }
+
+      return ret
     }
+
+    data.get = getter
+
+    // data.get = function <T = any>(path: string, defaultValue?: T): T | any {
+    //   return get(data, path, defaultValue)
+    // }
 
     if (!data) {
       return undefined

@@ -1,21 +1,19 @@
 import { flags } from '@oclif/command'
 import { BaseCommand } from '../../command'
+import * as dotenv from 'dotenv'
 
 import * as chalk from 'chalk'
 import { getConfigProvider } from '../../config/factory'
+import { DotenvFormatter, RemoteConfigEntryFormatter } from '../../config/format'
+import { readFileSync } from 'fs'
 
-export class DescribeCommand extends BaseCommand {
-  static aliases = ['config:print']
-
+export class ExportCommand extends BaseCommand {
   static description = `
-Print configuration values for one or multiple stages.
-Can be used with --raw to show the values as they're stored by the provider`
+Import configuration values for one or multiple stages.`
 
   static examples = [
-    `$ matter config:describe -s develop
-  ... Prints all configuration values for the develop environment`,
-    `$ matter config:describe -s fonne develop --raw
-  ... Prints all configuration values for the fonne and develop environment in their stored format`,
+    `$ matter config:import -s develop -i .env
+  ... Imports and sets all values from .env to develop environment`,
   ]
 
   static flags = {
@@ -23,13 +21,12 @@ Can be used with --raw to show the values as they're stored by the provider`
     // format: flags.enum({
     //   description: 'Output parameters as dotenv or yaml file.',
     //   options: ['yaml', 'dotenv'],
+    //   default: 'dotenv',
     // }),
-    // output: flags.string({
-    //   char: 'o',
-    //   description: 'Output filed path',
-    // }),
-    raw: flags.boolean({
-      description: 'Raw output as the values are stored by the provider (if available).',
+    input: flags.string({
+      char: 'i',
+      required: true,
+      description: 'Input file path',
     }),
     stage: flags.string({
       multiple: true,
@@ -42,36 +39,31 @@ Can be used with --raw to show the values as they're stored by the provider`
   static args = [...BaseCommand.args]
 
   async run() {
-    const { flags } = this.parse(DescribeCommand)
+    const { flags } = this.parse(ExportCommand)
 
     if (!this.cfg) {
       throw new Error('Config is required.')
     }
 
     const configProvider = getConfigProvider(this.cfg, this)
-    const values = await configProvider?.describeValues(flags.stage, flags.raw)
-    if (!values) {
-      throw new Error('Could not find values.')
+    const fileBuffer = readFileSync(flags.input!)
+    const values = dotenv.parse(fileBuffer)
+
+    const entries = DotenvFormatter.entries(values)
+
+    const writtenValues = await configProvider?.setValues(flags.stage, entries)
+    if (!writtenValues) {
+      throw new Error('Could not write values.')
     }
 
-    if (flags.raw) {
-      Object.entries(values).map(([stage, params]) => {
-        this.log(
-          `Configuration Values: ${chalk.green.bold(this.cfg?.get('app.name'))} (${chalk.green(
-            stage
-          )})`
-        )
-        this.log(JSON.stringify(params, null, 2))
+    flags.stage.map((stage) => {
+      this.log(`Written values for ${chalk.green(stage)}`)
+
+      const configValues = writtenValues[stage] || []
+      configValues.map((value) => {
+        this.log(`\t${chalk.green.bold(value.key)}: ${chalk.green(value.value)}`)
       })
-    } else {
-      flags.stage.map((stage) => {
-        this.log(`Values for ${chalk.green(stage)}`)
-        const stageValues = values[stage]
-        stageValues.map((stageValue) =>
-          this.log(`\t${chalk.green.bold(stageValue.key)}: ${chalk.green(stageValue.value)}`)
-        )
-      })
-    }
+    })
 
     // if (flags.format || flags.output) {
     //   const format = flags.format || 'dotenv'

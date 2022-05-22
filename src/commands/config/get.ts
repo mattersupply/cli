@@ -1,9 +1,7 @@
-import { flatMap } from 'lodash'
 import { flags } from '@oclif/command'
-import * as chalk from 'chalk'
+import chalk from 'chalk'
 import { BaseCommand } from '../../command'
-import { RemoteConfigurationPath, RemoteConfigurationValue } from '../../remote-config'
-import { createSSMConfigManager } from '../../aws'
+import { getConfigProvider } from '../../config/factory'
 
 export class GetCommand extends BaseCommand {
   static description = `
@@ -42,29 +40,34 @@ Get configuration entries from multiple stages.`
   }
 
   async getConfigValues(stages: string[], entries: string[]) {
-    const ssm = createSSMConfigManager(this.cfg)
     this.log(
       `Fetching Values: ${chalk.green.bold(this.cfg?.get('app.name'))} (${chalk.green(
         stages.join(', ')
       )})`
     )
 
-    await Promise.all(
-      flatMap(stages, async (stage) =>
-        entries.map(async (entry: string) => {
-          const value = await ssm
-            .getParameter({
-              Name: RemoteConfigurationPath.pathFromKey(entry, stage, this.cfg, true),
-            })
-            .promise()
+    if (!this.cfg) {
+      throw new Error('Config is required.')
+    }
+    this.log(process.cwd())
 
-          this.log(
-            `Value ${chalk.green.bold(entry)} = ${chalk.green(
-              RemoteConfigurationValue.parseConfigValue(value.Parameter?.Value, this.cfg)
-            )} (${stage})`
-          )
-        })
-      )
-    )
+    const configProvider = getConfigProvider(this.cfg, this)
+    const values = await configProvider?.getValues(stages, entries)
+    if (!values) {
+      throw new Error('Could not find values.')
+    }
+
+    stages.map((stage) => {
+      this.log(`Values for ${chalk.green(stage)}`)
+
+      const configValues = values[stage] || []
+      configValues.map((value) => {
+        if (value.value === undefined || value.value === null) {
+          this.log(`\t${chalk.yellow.bold(value.key)}: ${chalk.yellow(value.value)}`)
+        } else {
+          this.log(`\t${chalk.green.bold(value.key)}: ${chalk.green(value.value)}`)
+        }
+      })
+    })
   }
 }

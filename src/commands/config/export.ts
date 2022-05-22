@@ -3,33 +3,32 @@ import { BaseCommand } from '../../command'
 
 import * as chalk from 'chalk'
 import { getConfigProvider } from '../../config/factory'
+import { RemoteConfigEntryFormatter } from '../../config/format'
+import { writeFileSync } from 'fs'
 
-export class DescribeCommand extends BaseCommand {
-  static aliases = ['config:print']
-
+export class ExportCommand extends BaseCommand {
   static description = `
-Print configuration values for one or multiple stages.
-Can be used with --raw to show the values as they're stored by the provider`
+Export configuration values for one or multiple stages.
+When used with multiple environments, then the objects will be merged in order of appearance.
+This allows us to also fetch default values from another environment, or have local overrides.`
 
   static examples = [
-    `$ matter config:describe -s develop
-  ... Prints all configuration values for the develop environment`,
-    `$ matter config:describe -s fonne develop --raw
-  ... Prints all configuration values for the fonne and develop environment in their stored format`,
+    `$ matter config:export -s develop
+  ... Export all values for the develop environment, defaults to dotenv format`,
+    `$ matter config:describe -s fonne develop --format yaml
+  ... Export all values for the fonne and develop environment, in YAML. Overrides values from develop with values from fonne.`,
   ]
 
   static flags = {
     ...BaseCommand.flags,
-    // format: flags.enum({
-    //   description: 'Output parameters as dotenv or yaml file.',
-    //   options: ['yaml', 'dotenv'],
-    // }),
-    // output: flags.string({
-    //   char: 'o',
-    //   description: 'Output filed path',
-    // }),
-    raw: flags.boolean({
-      description: 'Raw output as the values are stored by the provider (if available).',
+    format: flags.enum({
+      description: 'Output parameters as dotenv or yaml file.',
+      options: ['yaml', 'dotenv'],
+      default: 'dotenv',
+    }),
+    output: flags.string({
+      char: 'o',
+      description: 'Output filed path',
     }),
     stage: flags.string({
       multiple: true,
@@ -42,35 +41,30 @@ Can be used with --raw to show the values as they're stored by the provider`
   static args = [...BaseCommand.args]
 
   async run() {
-    const { flags } = this.parse(DescribeCommand)
+    const { flags } = this.parse(ExportCommand)
 
     if (!this.cfg) {
       throw new Error('Config is required.')
     }
 
     const configProvider = getConfigProvider(this.cfg, this)
-    const values = await configProvider?.describeValues(flags.stage, flags.raw)
+    const values = await configProvider?.exportValues(flags.stage)
     if (!values) {
       throw new Error('Could not find values.')
     }
 
-    if (flags.raw) {
-      Object.entries(values).map(([stage, params]) => {
-        this.log(
-          `Configuration Values: ${chalk.green.bold(this.cfg?.get('app.name'))} (${chalk.green(
-            stage
-          )})`
-        )
-        this.log(JSON.stringify(params, null, 2))
-      })
+    let exported = ''
+    if (flags.format === 'dotenv') {
+      exported = RemoteConfigEntryFormatter.dotenv(values)
+    } else if (flags.format === 'yaml') {
+      exported = RemoteConfigEntryFormatter.yaml(values)
+    }
+
+    if (flags.output) {
+      writeFileSync(flags.output, Buffer.from(exported))
+      this.log(`Wrote values to: ${chalk.green.bold(flags.output)}`)
     } else {
-      flags.stage.map((stage) => {
-        this.log(`Values for ${chalk.green(stage)}`)
-        const stageValues = values[stage]
-        stageValues.map((stageValue) =>
-          this.log(`\t${chalk.green.bold(stageValue.key)}: ${chalk.green(stageValue.value)}`)
-        )
-      })
+      this.log(exported)
     }
 
     // if (flags.format || flags.output) {

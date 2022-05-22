@@ -1,0 +1,10 @@
+app:
+  name: test
+
+providers:
+  aws:
+    profile: test
+    region: us-west-2
+
+config:
+  provider: aws

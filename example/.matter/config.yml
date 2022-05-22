@@ -1,0 +1,19 @@
+app:
+  name: demo
+
+providers:
+  aws:
+    profile: msco-internal-admin
+    region: us-west-2
+
+  vault:
+    address: https://vault.internal.msco.dev:443
+    mountPoint: projects
+    envSecret: env
+    auth:
+      method: github
+      token: ghp_...
+      path: github
+
+config:
+  provider: vault

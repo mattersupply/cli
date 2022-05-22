@@ -2,21 +2,14 @@ import { flatMap } from 'lodash'
 import { flags } from '@oclif/command'
 import * as chalk from 'chalk'
 import { BaseCommand } from '../../command'
-import { RemoteConfigurationPath } from '../../remote-config'
-import { createSSMConfigManager } from '../../aws'
+import { RemoteConfigurationPath } from '../../config/aws/utils'
+import { getConfigProvider } from '../../config/factory'
 
 export class DeleteCommand extends BaseCommand {
   static description = `
 Deletes configuration entries across multiple stages.`
 
-  static examples = [
-    `$ matter config:delete -s develop -s local -e foo -e baz
-  Deleting Values: mattersupplyco (develop, local)
-  Deleted baz (develop)
-  Deleted foo (develop)
-  Deleted baz (local)
-  Deleted foo (local)`,
-  ]
+  static examples = [`$ matter config:delete -s develop -s local -e foo -e baz`]
 
   static flags = {
     ...BaseCommand.flags,
@@ -42,25 +35,29 @@ Deletes configuration entries across multiple stages.`
   }
 
   async deleteConfigValues(stages: string[], entries: string[]) {
-    const ssm = createSSMConfigManager(this.cfg)
     this.log(
       `Deleting Values: ${chalk.green.bold(this.cfg?.get('app.name'))} (${chalk.green(
         stages.join(', ')
       )})`
     )
 
-    await Promise.all(
-      flatMap(stages, async (stage) =>
-        entries.map(async (entry: string) => {
-          await ssm
-            .deleteParameter({
-              Name: RemoteConfigurationPath.pathFromKey(entry, stage, this.cfg, true),
-            })
-            .promise()
+    if (!this.cfg) {
+      throw new Error('Config is required.')
+    }
 
-          this.log(`Deleted ${chalk.green.bold(entry)} (${stage})`)
-        })
-      )
-    )
+    const configProvider = getConfigProvider(this.cfg, this)
+    const values = await configProvider?.deleteValues(stages, entries)
+    if (!values) {
+      throw new Error('Could not delete values.')
+    }
+
+    stages.map((stage) => {
+      this.log(`Deleted entries for ${chalk.green(stage)}`)
+
+      const configValues = values[stage] || []
+      configValues.map((value) => {
+        this.log(`\t${chalk.green.bold(value.key)}`)
+      })
+    })
   }
 }

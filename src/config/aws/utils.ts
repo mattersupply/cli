@@ -1,14 +1,24 @@
 import { merge, defaults, snakeCase, toUpper, kebabCase } from 'lodash'
-import { Config, NULL_VALUE } from './config'
-import { createSSMConfigManager } from './aws'
+import { Config, NULL_VALUE } from '../../config-file'
 import { SSM } from 'aws-sdk'
-import { safeDump } from 'js-yaml'
+import * as AWS from 'aws-sdk'
 
 export interface RemoteConfigurationEntry {
   key: string
   value: string
   type?: string
   description?: string
+}
+
+export function createSSMConfigManager(config?: Config) {
+  const credentials = new AWS.SharedIniFileCredentials({
+    profile: config?.get('providers.aws.profile'),
+  })
+  if (credentials.accessKeyId) {
+    AWS.config.credentials = credentials
+  }
+
+  return new SSM({ region: config?.get('providers.aws.region') })
 }
 
 export namespace RemoteConfigurationPath {
@@ -56,68 +66,14 @@ export namespace RemoteConfigurationValue {
 }
 
 export namespace RemoteConfigurationFormatter {
-  export function dotenv(values: { [key: string]: SSM.Parameter }) {
-    let output = ''
-    Object.entries(values).map(([key, parameter]) => {
-      if (!parameter.Name) {
-        return
-      }
-
-      const value = parameter.Value
-      const keySegments = key.split('/').map((v) => toUpper(snakeCase(v)))
-
-      output += `# Type: ${parameter.Type}, Version: ${parameter.Version}, Key: ${parameter.Name}\n`
-      output += `${keySegments.join('__')}=${value}\n`
-    })
-
-    return output
+  export function entries(values: { [key: string]: SSM.Parameter }) {
+    return Object.entries(values).map(([key, parameter]) => ({
+      key,
+      value: parameter.Value || '',
+      description: `Type: ${parameter.Type}, Version: ${parameter.Version}, Key: ${parameter.Name}\n`,
+      type: parameter.Type,
+    }))
   }
-
-  export function yaml(values: { [key: string]: SSM.Parameter }) {
-    return safeDump(values)
-  }
-}
-
-export async function fetchValues(stages: string[], cfg?: Config) {
-  const fetchedParameters = await Promise.all(
-    stages.map(async (stage) => ({ stage, values: await fetchValuesByStage(stage, cfg) }))
-  )
-
-  const parameters = fetchedParameters.reduce<{ [key: string]: any }>((acc, value) => {
-    acc[value.stage] = value.values
-    return acc
-  }, {})
-
-  return parameters
-}
-
-export async function fetchValuesByStage(stage: string, cfg?: Config) {
-  const namespace = RemoteConfigurationPath.namespace(stage, cfg)
-  const ssm = createSSMConfigManager(cfg)
-
-  let parameterValues = await ssm
-    .getParametersByPath({
-      Path: namespace,
-      Recursive: true,
-    })
-    .promise()
-  let nextToken = parameterValues.NextToken
-  while (nextToken) {
-    const pagedResult = await ssm
-      .getParametersByPath({
-        Path: namespace,
-        Recursive: true,
-        NextToken: nextToken,
-      })
-      .promise()
-    nextToken = pagedResult.NextToken
-    parameterValues = {
-      ...parameterValues,
-      Parameters: [...(pagedResult.Parameters || []), ...(parameterValues.Parameters || [])],
-    }
-  }
-
-  return parameterValues
 }
 
 export function combineValues(

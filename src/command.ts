@@ -1,6 +1,6 @@
 import { Command, flags } from '@oclif/command'
 import { args, Input, OutputArgs, OutputFlags } from '@oclif/parser'
-import { Config, getMatterConfig } from './config'
+import { Config, getMatterConfig } from './config-file'
 
 abstract class BaseCommand extends Command {
   static flags = {
