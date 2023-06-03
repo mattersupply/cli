@@ -117,7 +117,10 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
       })
     )
 
-    return this.getAllEntries(stages)
+    return this.getEntries(
+      entries.map((e) => e.key),
+      stages
+    )
   }
 
   async deleteEntries(keys: string[], stages: string[]) {

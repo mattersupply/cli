@@ -3,6 +3,7 @@ import * as chalk from 'chalk'
 import { BaseCommand } from '../../command'
 import { createRemoteConfigService } from '../../lib/config/'
 import { EntryType } from '../../lib/config/config'
+import { logConfigurations } from '../../lib/config/print'
 
 export class SetCommand extends BaseCommand {
   static description = `
@@ -48,6 +49,11 @@ Set configuration entries from multiple stages.`
       return { key, value, type: flags.preferSecure ? EntryType.secureString : EntryType.string }
     })
 
-    await configService.setEntries(entries, stages)
+    const updatedEntries = await configService.setEntries(entries, stages)
+
+    this.log(
+      `Updated/Created Configuration Values (App: ${chalk.bold(this.cfg?.get('app.name'))}) `
+    )
+    logConfigurations(updatedEntries, this.log)
   }
 }
