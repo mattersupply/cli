@@ -12,7 +12,7 @@ on:
         required: true
 jobs:
   npm:
-    uses: ../actions/npmPublish@master
+    uses: mattersupply/cli/.github/actions/npmPublish@master
     with:
       tag: latest
       githubTag: ${{ github.event.release.tag_name || inputs.tag }}
