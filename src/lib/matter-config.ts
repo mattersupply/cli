@@ -52,7 +52,7 @@ export async function getMatterConfig(path?: string | null): Promise<Config | un
     }
 
     const fileContents = fs.readFileSync(path, 'utf8')
-    const data = yaml.safeLoad(fileContents)
+    const data = yaml.load(fileContents) as Config
     defaultsDeep(data, ConfigDefaults)
 
     data.get = function <T = any>(path: string, defaultValue?: T): T | any {

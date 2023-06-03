@@ -1,17 +1,8 @@
-my-key:
-  key: my-key
-  value: overwritten-value
-my:
+test-key:
+  key: test-key
+  value: imported-yaml-value
+imported:
   nested:
-    other-key:
-      key: my/nested/other-key
-      value: other-nested-key
-    key:
-      key: my/nested/key
-      value: nested-value
-my-list:
-  key: my-list
-  value: 'value1,value2'
-my-encrypted-key:
-  key: my-encrypted-key
-  value: my-encrypted-value
+    yaml-key:
+      key: imported/nested/yaml-key
+      value: imported-nested-yaml-key-value

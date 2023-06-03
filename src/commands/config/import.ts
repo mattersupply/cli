@@ -1,50 +1,49 @@
-import { flags } from '@oclif/command'
+import { Flags } from '@oclif/core'
 import { BaseCommand } from '../../command'
 
 import { createRemoteConfigService } from '../../lib/config'
 import { createRemoteConfigFile } from '../../lib/config/config-file'
-import { combineEntries } from '../../lib/config/utils'
 import { OutputFormat } from '../../lib/config/config'
 import { readFileSync } from 'fs'
 
 export class ImportCommand extends BaseCommand {
-  static description = `Exports configuration values for one or multiple stages.`
+  static description = `Imports configuration values for one or multiple stages.`
 
   static examples = [
-    `$ matter config:import -s develop -i env.yaml --format yaml
+    `<%= config.bin %> <%= command.id %> -s develop -i env.yaml --format yaml
   ... Imports configuration values from env.yaml for stage develop in YAML format.`,
-    `$ matter config:import -s common develop -i .env
+    `<%= config.bin %> <%= command.id %> -s common develop -i .env
   ... Imports configuration values from .env for stages common and develop in dotenv format.`,
   ]
 
   static flags = {
     ...BaseCommand.flags,
-    format: flags.enum({
+    format: Flags.string({
       description: 'Import file as dotenv or yaml file.',
       default: OutputFormat.dotenv,
       options: [OutputFormat.yaml, OutputFormat.dotenv],
     }),
-    stage: flags.string({
+    stage: Flags.string({
       multiple: true,
       char: 's',
       description: 'Stage (environment) to import.',
     }),
-    input: flags.string({
+    input: Flags.string({
       required: true,
       char: 'i',
       description: 'Import file path',
     }),
-    preferSecure: flags.boolean({
+    preferSecure: Flags.boolean({
       required: false,
       description: 'Prefer secure (encrypted) type for values where possible.',
       default: false,
     }),
   }
 
-  static args = [...BaseCommand.args]
+  static args = { ...BaseCommand.args }
 
   async run() {
-    const { flags } = this.parse(ImportCommand)
+    const { flags } = await this.parse(ImportCommand)
 
     const configService = createRemoteConfigService(this.cfg!)
     const stages =

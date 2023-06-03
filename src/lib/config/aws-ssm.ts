@@ -16,7 +16,7 @@ import {
   RemoteConfigurationEntry,
   RemoteConfigurationService,
 } from './config'
-import { combineEntries } from './utils'
+import { chunkArray, combineEntries } from './utils'
 
 export class AWSSSMRemoteConfigurationService implements RemoteConfigurationService {
   protected config: Config
@@ -50,7 +50,7 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
     const names = stages.flatMap((stage) =>
       keys.map((key) => RemoteConfigurationPath.pathFromKey(key, stage, this.config))
     )
-    const perChunk = 2
+    const perChunk = 10
     const chunkedNames = names.reduce<string[][]>((acc, key, index) => {
       const chunkIndex = Math.floor(index / perChunk)
 
@@ -128,12 +128,7 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
       keys.map((key) => RemoteConfigurationPath.pathFromKey(key, stage, this.config))
     )
 
-    const input = {
-      Names: names,
-    }
-    const command = new DeleteParametersCommand(input)
-
-    const deleteResult = await this.ssm.send(command)
+    const chunkedNames = chunkArray(names, 10)
     const entries = stages.reduce<{ [stage: string]: RemoteConfigurationDeleteResult }>(
       (acc, stage) => {
         acc[stage] = { stage, deleted: [], failed: [] }
@@ -155,8 +150,18 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
       })
     }
 
-    mapDeletionResult(deleteResult.DeletedParameters, 'deleted')
-    mapDeletionResult(deleteResult.InvalidParameters, 'failed')
+    await Promise.all(
+      chunkedNames.map(async (chunk) => {
+        const input = {
+          Names: chunk,
+        }
+        const command = new DeleteParametersCommand(input)
+
+        const deleteResult = await this.ssm.send(command)
+        mapDeletionResult(deleteResult.DeletedParameters, 'deleted')
+        mapDeletionResult(deleteResult.InvalidParameters, 'failed')
+      })
+    )
 
     return stages.map((stage) => entries[stage])
   }

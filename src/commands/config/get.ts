@@ -1,26 +1,25 @@
-import { flags } from '@oclif/command'
+import { Flags } from '@oclif/core'
 import * as chalk from 'chalk'
 import { BaseCommand } from '../../command'
 import { createRemoteConfigService } from '../../lib/config'
 import { logConfigurations } from '../../lib/config/print'
 export class GetCommand extends BaseCommand {
-  static description = `
-Get configuration entries from multiple stages.`
+  static description = `Get configuration entries from multiple stages.`
 
   static examples = [
-    `$ matter config:get -s develop -s local -e foo bar
+    `<%= config.bin %> <%= command.id %> -s develop -s local -e foo bar
   ... Getting values for stages develop and local`,
   ]
 
   static flags = {
     ...BaseCommand.flags,
-    entry: flags.string({
+    entry: Flags.string({
       multiple: true,
       required: true,
       char: 'e',
       description: 'Entry/Entries to fetch.',
     }),
-    stage: flags.string({
+    stage: Flags.string({
       multiple: true,
       required: true,
       char: 's',
@@ -28,10 +27,10 @@ Get configuration entries from multiple stages.`
     }),
   }
 
-  static args = [...BaseCommand.args]
+  static args = { ...BaseCommand.args }
 
   async run() {
-    const { flags } = this.parse(GetCommand)
+    const { flags } = await this.parse(GetCommand)
 
     const configService = createRemoteConfigService(this.cfg!)
     const stages =
@@ -41,6 +40,7 @@ Get configuration entries from multiple stages.`
     this.debug('results', results)
 
     this.log(`Configuration Values (App: ${chalk.bold(this.cfg?.get('app.name'))}) `)
-    logConfigurations(results, this.log)
+    const logger = (message: string, ...args: any[]) => this.log(message, ...args)
+    logConfigurations(results, logger)
   }
 }

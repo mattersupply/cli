@@ -68,8 +68,6 @@ abstract class RemoteConfigFile {
 }
 
 export class DotenvRemoteConfigFile extends RemoteConfigFile {
-  _entries?: RemoteConfigurationEntry[]
-
   loadBuffer(content: Buffer) {
     const lines = content.toString().split('\n')
 
@@ -138,7 +136,7 @@ export class DotenvRemoteConfigFile extends RemoteConfigFile {
 // TODO: This should probably create nested configurations for nested keys
 export class YamlRemoteConfigFile extends RemoteConfigFile {
   loadBuffer(content: Buffer) {
-    const data = yaml.safeLoad(content.toString())
+    const data = yaml.load(content.toString()) as { [key: string]: any }
     const flattened = this.flattenEntries(data)
 
     this._entries = flattened
@@ -146,7 +144,7 @@ export class YamlRemoteConfigFile extends RemoteConfigFile {
 
   toBuffer(): Buffer {
     const nested = this.nestedEntriesByKey()
-    return Buffer.from(yaml.safeDump(nested))
+    return Buffer.from(yaml.dump(nested))
   }
 
   flattenEntries(content: { [key: string]: any }): RemoteConfigurationEntry[] {

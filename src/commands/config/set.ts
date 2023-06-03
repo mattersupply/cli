@@ -1,4 +1,4 @@
-import { flags } from '@oclif/command'
+import { Flags } from '@oclif/core'
 import * as chalk from 'chalk'
 import { BaseCommand } from '../../command'
 import { createRemoteConfigService } from '../../lib/config/'
@@ -6,39 +6,38 @@ import { EntryType } from '../../lib/config/config'
 import { logConfigurations } from '../../lib/config/print'
 
 export class SetCommand extends BaseCommand {
-  static description = `
-Set configuration entries from multiple stages.`
+  static description = `Set configuration entries from multiple stages.`
 
   static examples = [
-    `$ matter config:set -s develop -s local -e foo=bar -e baz=boz
+    `<%= config.bin %> <%= command.id %> -s develop -s local -e foo=bar -e baz=boz
   ... Setting values for stages develop and local`,
   ]
 
   static flags = {
     ...BaseCommand.flags,
-    entry: flags.string({
+    entry: Flags.string({
       multiple: true,
       required: true,
       char: 'e',
       description: 'Entry/Entries to set as `key=value`.',
     }),
-    stage: flags.string({
+    stage: Flags.string({
       multiple: true,
       required: true,
       char: 's',
       description: 'Stage(s) (environment).',
     }),
-    preferSecure: flags.boolean({
+    preferSecure: Flags.boolean({
       required: false,
       description: 'Prefer secure (encrypted) type for values where possible.',
       default: false,
     }),
   }
 
-  static args = [...BaseCommand.args]
+  static args = { ...BaseCommand.args }
 
   async run() {
-    const { flags } = this.parse(SetCommand)
+    const { flags } = await this.parse(SetCommand)
 
     const configService = createRemoteConfigService(this.cfg!)
     const stages =
@@ -54,6 +53,7 @@ Set configuration entries from multiple stages.`
     this.log(
       `Updated/Created Configuration Values (App: ${chalk.bold(this.cfg?.get('app.name'))}) `
     )
-    logConfigurations(updatedEntries, this.log)
+    const logger = (message: string, ...args: any[]) => this.log(message, ...args)
+    logConfigurations(updatedEntries, logger)
   }
 }

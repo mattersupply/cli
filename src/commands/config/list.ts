@@ -1,4 +1,4 @@
-import { flags } from '@oclif/command'
+import { Flags } from '@oclif/core'
 import { BaseCommand } from '../../command'
 
 import * as chalk from 'chalk'
@@ -9,25 +9,25 @@ export class ListCommand extends BaseCommand {
   static description = `Print configuration values for one or multiple stages.`
 
   static examples = [
-    `$ matter config:describe -s develop
+    `<%= config.bin %> <%= command.id %> -s develop
   ... Prints all SSM configuration values`,
-    `$ matter config:describe -s common develop
+    `<%= config.bin %> <%= command.id %> -s common develop
   ... Prints configuration values for stages common and develop`,
   ]
 
   static flags = {
     ...BaseCommand.flags,
-    stage: flags.string({
+    stage: Flags.string({
       multiple: true,
       char: 's',
       description: 'Stage (environment) to print.',
     }),
   }
 
-  static args = [...BaseCommand.args]
+  static args = { ...BaseCommand.args }
 
   async run() {
-    const { flags } = this.parse(ListCommand)
+    const { flags } = await this.parse(ListCommand)
 
     const configService = createRemoteConfigService(this.cfg!)
     const stages =
@@ -37,7 +37,7 @@ export class ListCommand extends BaseCommand {
     this.debug('results', results)
 
     this.log(`Configuration Values (App: ${chalk.bold(this.cfg?.get('app.name'))}) `)
-
-    logConfigurations(results, this.log)
+    const logger = (message: string, ...args: any[]) => this.log(message, ...args)
+    logConfigurations(results, logger)
   }
 }

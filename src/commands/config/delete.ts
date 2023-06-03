@@ -1,31 +1,26 @@
-import { flags } from '@oclif/command'
+import { Flags } from '@oclif/core'
 import * as chalk from 'chalk'
 import { BaseCommand } from '../../command'
 import { createRemoteConfigService } from '../../lib/config'
 import { capitalize } from 'lodash'
 
 export class DeleteCommand extends BaseCommand {
-  static description = `
-Deletes configuration entries across multiple stages.`
+  static description = `Deletes configuration entries across multiple stages.`
 
   static examples = [
-    `$ matter config:delete -s develop -s local -e foo -e baz
-  Deleting Values: mattersupplyco (develop, local)
-  Deleted baz (develop)
-  Deleted foo (develop)
-  Deleted baz (local)
-  Deleted foo (local)`,
+    `<%= config.bin %> <%= command.id %> -s develop -s local -e foo -e baz
+ ... Deleting values for stages develop and local`,
   ]
 
   static flags = {
     ...BaseCommand.flags,
-    entry: flags.string({
+    entry: Flags.string({
       multiple: true,
       required: true,
       char: 'e',
       description: 'Entry/Entries to delete.',
     }),
-    stage: flags.string({
+    stage: Flags.string({
       multiple: true,
       required: true,
       char: 's',
@@ -33,10 +28,10 @@ Deletes configuration entries across multiple stages.`
     }),
   }
 
-  static args = [...BaseCommand.args]
+  static args = { ...BaseCommand.args }
 
   async run() {
-    const { flags } = this.parse(DeleteCommand)
+    const { flags } = await this.parse(DeleteCommand)
     await this.deleteConfigValues(flags.stage, flags.entry)
   }
 

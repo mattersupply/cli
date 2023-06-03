@@ -22,3 +22,16 @@ export function combineEntries(
 
   return Object.values(merged)
 }
+
+export function chunkArray<T>(array: T[], size: number): T[][] {
+  return array.reduce<T[][]>((acc, _, index) => {
+    const chunkIndex = Math.floor(index / size)
+
+    if (!acc[chunkIndex]) {
+      acc[chunkIndex] = [] // start a new chunk
+    }
+
+    acc[chunkIndex].push(array[index])
+    return acc
+  }, [])
+}

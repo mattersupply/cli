@@ -3,7 +3,7 @@ import { RemoteConfigurationConfig } from './config'
 
 export function logConfigurations(
   results: RemoteConfigurationConfig[],
-  log: (message?: string, ...args: any[]) => void
+  log: (message: string, ...args: any[]) => void
 ) {
   return results.forEach((result) => {
     if (result.entries.length > 0) {
