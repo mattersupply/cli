@@ -1,0 +1,17 @@
+my-key:
+  key: my-key
+  value: overwritten-value
+my:
+  nested:
+    other-key:
+      key: my/nested/other-key
+      value: other-nested-key
+    key:
+      key: my/nested/key
+      value: nested-value
+my-list:
+  key: my-list
+  value: 'value1,value2'
+my-encrypted-key:
+  key: my-encrypted-key
+  value: my-encrypted-value

@@ -2,8 +2,8 @@ import { flatMap, uniq } from 'lodash'
 import { flags } from '@oclif/command'
 import * as chalk from 'chalk'
 import { BaseCommand } from '../../command'
-import { fetchValues, descriptionsByKey, fetchValuesByStage } from '../../remote-config'
-import { createSSMConfigManager } from '../../aws'
+import { fetchValues, descriptionsByKey, fetchValuesByStage } from '../../lib/config/'
+import { createSSMConfigManager } from '../../lib/config/aws'
 import { SSM } from 'aws-sdk'
 
 export class CompareCommand extends BaseCommand {

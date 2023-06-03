@@ -1,9 +1,8 @@
-import { flatMap } from 'lodash'
 import { flags } from '@oclif/command'
 import * as chalk from 'chalk'
 import { BaseCommand } from '../../command'
-import { RemoteConfigurationPath } from '../../remote-config'
-import { createSSMConfigManager } from '../../aws'
+import { createRemoteConfigService } from '../../lib/config'
+import { capitalize } from 'lodash'
 
 export class DeleteCommand extends BaseCommand {
   static description = `
@@ -42,25 +41,25 @@ Deletes configuration entries across multiple stages.`
   }
 
   async deleteConfigValues(stages: string[], entries: string[]) {
-    const ssm = createSSMConfigManager(this.cfg)
-    this.log(
-      `Deleting Values: ${chalk.green.bold(this.cfg?.get('app.name'))} (${chalk.green(
-        stages.join(', ')
-      )})`
-    )
+    const configService = createRemoteConfigService(this.cfg!)
+    const results = await configService.deleteEntries(entries, stages)
 
-    await Promise.all(
-      flatMap(stages, async (stage) =>
-        entries.map(async (entry: string) => {
-          await ssm
-            .deleteParameter({
-              Name: RemoteConfigurationPath.pathFromKey(entry, stage, this.cfg, true),
-            })
-            .promise()
+    this.debug('results', results)
 
-          this.log(`Deleted ${chalk.green.bold(entry)} (${stage})`)
-        })
-      )
-    )
+    this.log(`Deleted Values (App: ${chalk.bold(this.cfg?.get('app.name'))}) `)
+    results.forEach((result) => {
+      const statuses = ['deleted', 'failed'] as ('deleted' | 'failed')[]
+
+      statuses.forEach((status) => {
+        if (result[status].length > 0) {
+          const chalkFn = status === 'deleted' ? chalk.green : chalk.red
+          this.log(`  Stage: ${chalk.bold(result.stage)} ${chalkFn(capitalize(status))}:`)
+
+          result[status].forEach((key) => {
+            this.log(`    - ${chalk.bold(key)}`)
+          })
+        }
+      })
+    })
   }
 }

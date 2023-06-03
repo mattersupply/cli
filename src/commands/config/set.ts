@@ -1,13 +1,8 @@
-import { kebabCase, flatMap } from 'lodash'
 import { flags } from '@oclif/command'
 import * as chalk from 'chalk'
 import { BaseCommand } from '../../command'
-import {
-  RemoteConfigurationEntry,
-  RemoteConfigurationPath,
-  RemoteConfigurationValue,
-} from '../../remote-config'
-import { createSSMConfigManager } from '../../aws'
+import { createRemoteConfigService } from '../../lib/config/'
+import { EntryType } from '../../lib/config/config'
 
 export class SetCommand extends BaseCommand {
   static description = `
@@ -15,11 +10,7 @@ Set configuration entries from multiple stages.`
 
   static examples = [
     `$ matter config:set -s develop -s local -e foo=bar -e baz=boz
-  Setting Values: mattersupplyco (develop, local)
-  Set foo = bar (local)
-  Set foo = bar (develop)
-  Set baz = boz (local)
-  Set baz = boz (develop)`,
+  ... Setting values for stages develop and local`,
   ]
 
   static flags = {
@@ -36,6 +27,11 @@ Set configuration entries from multiple stages.`
       char: 's',
       description: 'Stage(s) (environment).',
     }),
+    preferSecure: flags.boolean({
+      required: false,
+      description: 'Prefer secure (encrypted) type for values where possible.',
+      default: false,
+    }),
   }
 
   static args = [...BaseCommand.args]
@@ -43,52 +39,15 @@ Set configuration entries from multiple stages.`
   async run() {
     const { flags } = this.parse(SetCommand)
 
+    const configService = createRemoteConfigService(this.cfg!)
+    const stages =
+      flags.stage && flags.stage.length > 0 ? flags.stage : this.cfg!.get('environments')
+
     const entries = flags.entry.map((entry) => {
-      const loc = entry.indexOf('=')
-      return {
-        key: entry.substring(0, loc).trim(),
-        value: entry.substring(loc + 1).trim(),
-        type: 'String',
-      }
+      const [key, value] = entry.split('=')
+      return { key, value, type: flags.preferSecure ? EntryType.secureString : EntryType.string }
     })
 
-    await this.setConfigValues(flags.stage, entries)
-  }
-
-  async setConfigValues(stages: string[], entries: RemoteConfigurationEntry[]) {
-    const transformedValues: RemoteConfigurationEntry[] = entries.map((entry) => {
-      // Sanitizing input.
-      entry.key = RemoteConfigurationPath.pathFromKey(entry.key)
-      entry.value = RemoteConfigurationValue.formatEntryValue(entry.value)
-
-      return entry
-    })
-
-    const ssm = createSSMConfigManager(this.cfg)
-    this.log(
-      `Setting Values: ${chalk.green.bold(this.cfg?.get('app.name'))} (${chalk.green(
-        stages.join(', ')
-      )})`
-    )
-
-    await Promise.all(
-      flatMap(stages, async (stage) => {
-        return transformedValues.map(async (entry: RemoteConfigurationEntry) => {
-          await ssm
-            .putParameter({
-              Name: RemoteConfigurationPath.pathFromKey(entry.key, stage, this.cfg, true),
-              Description: entry.description || '',
-              Value: entry.value,
-              Type: entry.type || 'String',
-              Overwrite: true,
-            })
-            .promise()
-
-          this.log(`Set ${chalk.green.bold(entry.key)} = ${chalk.bold(entry.value)} (${stage})`)
-
-          return
-        })
-      })
-    )
+    await configService.setEntries(entries, stages)
   }
 }
