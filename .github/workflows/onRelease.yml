@@ -12,7 +12,7 @@ on:
         required: true
 jobs:
   npm:
-    uses: oclif/github-workflows/.github/workflows/npmPublish.yml@main
+    uses: ./.github/actions/npmPublish
     with:
       tag: latest
       githubTag: ${{ github.event.release.tag_name || inputs.tag }}
