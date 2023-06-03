@@ -1,24 +1,24 @@
-import { Command, flags } from '@oclif/command'
-import { args, Input, OutputArgs, OutputFlags } from '@oclif/parser'
-import { Config, getMatterConfig } from './config'
+import { Command, Flags, Args } from '@oclif/core'
+import { Config, getMatterConfig } from './lib/matter-config'
+import { ArgOutput, FlagOutput } from '@oclif/core/lib/interfaces/parser'
 
 abstract class BaseCommand extends Command {
   static flags = {
-    config: flags.string({
+    config: Flags.string({
       description: 'Path to config file.',
       char: 'c',
       default: 'matter.yml',
     }),
   }
 
-  static args: args.IArg[] = []
+  static args: {}
 
-  protected parsedArgs?: OutputArgs<any>
-  protected parsedFlags?: OutputFlags<typeof BaseCommand.flags>
+  protected parsedArgs?: ArgOutput
+  protected parsedFlags?: FlagOutput
   protected cfg?: Config
 
   async init() {
-    const { args, flags } = this.parse(this.constructor as Input<typeof BaseCommand.flags>)
+    const { args, flags } = await this.parse(this.constructor as any)
     this.parsedArgs = args
     this.parsedFlags = flags
 

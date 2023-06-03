@@ -1,41 +1,38 @@
 import { Flags } from '@oclif/core'
-import * as chalk from 'chalk'
 import { BaseCommand } from '../../command'
+
+import * as chalk from 'chalk'
 import { createRemoteConfigService } from '../../lib/config'
 import { logConfigurations } from '../../lib/config/print'
-export class GetCommand extends BaseCommand {
-  static description = `Get configuration entries from multiple stages.`
+
+export class ListCommand extends BaseCommand {
+  static description = `Print configuration values for one or multiple stages.`
 
   static examples = [
-    `<%= config.bin %> <%= command.id %> -s develop -s local -e foo bar
-  ... Getting values for stages develop and local`,
+    `<%= config.bin %> <%= command.id %> -s develop
+  ... Prints all SSM configuration values`,
+    `<%= config.bin %> <%= command.id %> -s common develop
+  ... Prints configuration values for stages common and develop`,
   ]
 
   static flags = {
     ...BaseCommand.flags,
-    entry: Flags.string({
-      multiple: true,
-      required: true,
-      char: 'e',
-      description: 'Entry/Entries to fetch.',
-    }),
     stage: Flags.string({
       multiple: true,
-      required: true,
       char: 's',
-      description: 'Stage(s) (environment).',
+      description: 'Stage (environment) to print.',
     }),
   }
 
   static args = { ...BaseCommand.args }
 
   async run() {
-    const { flags } = await this.parse(GetCommand)
+    const { flags } = await this.parse(ListCommand)
 
     const configService = createRemoteConfigService(this.cfg!)
     const stages =
       flags.stage && flags.stage.length > 0 ? flags.stage : this.cfg!.get('environments')
-    const results = await configService.getEntries(flags.entry, stages)
+    const results = await configService.getAllEntries(stages)
 
     this.debug('results', results)
 

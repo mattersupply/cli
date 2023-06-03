@@ -4,9 +4,6 @@ import * as yaml from 'js-yaml'
 import * as chalk from 'chalk'
 import * as findUp from 'findup-sync'
 
-// This is because SSM does not support empty values.
-export const NULL_VALUE = `NULL`
-
 export const MATTER_CONFIG_PATH = `.matter`
 export const MATTER_CONFIG_FILENAME = `config.yml`
 export const MATTER_CONFIG_DEAULT_FILENAME = `matter.yml`
@@ -21,6 +18,12 @@ const ConfigDefaults = {
   aws: {
     region: `us-east-1`,
     profile: `default`,
+  },
+  remoteConfig: {
+    source: 'awsSsm',
+  },
+  awsSsm: {
+    nullValue: 'NULL',
   },
   environments: [`develop`, `staging`, `production`],
 }
@@ -45,11 +48,11 @@ export async function getMatterConfig(path?: string | null): Promise<Config | un
     }
 
     if (!path) {
-      throw new Error(`Unable to read config file: ${path}`)
+      throw new Error(`Unable to read config file`)
     }
 
     const fileContents = fs.readFileSync(path, 'utf8')
-    const data = yaml.safeLoad(fileContents)
+    const data = yaml.load(fileContents) as Config
     defaultsDeep(data, ConfigDefaults)
 
     data.get = function <T = any>(path: string, defaultValue?: T): T | any {
@@ -65,7 +68,7 @@ export async function getMatterConfig(path?: string | null): Promise<Config | un
     // return data
     return data
   } catch (e) {
-    console.error(e)
+    throw e
   }
 }
 

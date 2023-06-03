@@ -1,0 +1,8 @@
+test-key:
+  key: test-key
+  value: imported-yaml-value
+imported:
+  nested:
+    yaml-key:
+      key: imported/nested/yaml-key
+      value: imported-nested-yaml-key-value
