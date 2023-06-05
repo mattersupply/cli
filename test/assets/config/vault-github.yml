@@ -1,0 +1,42 @@
+app:
+  name: 'my-app'
+remoteConfig:
+  # dotenv:
+  #   pathDelimitier: __
+  # yaml:
+  #   nestedPaths: true
+
+  source: vault
+
+  vault:
+    address: https://sample-cluster-public-vault-0e18817a.1540cf7a.z1.hashicorp.cloud:8200
+    namespace: admin
+
+    pathFormat: '{appName}/{stage}/{key}'
+    # address:
+    #   develop: https://sample-cluster-public-vault-0e18817a.1540cf7a.z1.hashicorp.cloud:8200
+    #   staging: https://sample-cluster-public-vault-0e18817a.1540cf7a.z1.hashicorp.cloud:8200
+    #   prod: https://sample-cluster-public-vault-0e18817a.1540cf7a.z1.hashicorp.cloud:8200
+    secretMountPoint: secret
+
+    # namespace:
+    #   develop: admin/develop
+    #   staging: admin/staging
+    #   prod: admin/prod
+    auth:
+      mountPoint: github
+      options:
+        token: ${{ env.GITHUB_PAT }}
+  # auth:
+  #   method: userpass
+  #   username: ${{ env.VAULT_USERNAME }}
+  #   password: ${{ env.VAULT_PASSWD }}
+stages:
+  - my-stage
+  - staging
+  - production
+# remoteConfig:
+#   source: github
+
+#   github:
+#     repository:

@@ -7,7 +7,7 @@ remoteConfig:
   source: awsSsm
 awsSsm:
   nullValue: 'NULL'
-environments:
+stages:
   - my-stage
   - staging
   - production

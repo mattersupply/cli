@@ -1,4 +1,4 @@
-import { Command, Flags, Args } from '@oclif/core'
+import { Command, Flags } from '@oclif/core'
 import { Config, getMatterConfig } from './lib/matter-config'
 import { ArgOutput, FlagOutput } from '@oclif/core/lib/interfaces/parser'
 
@@ -10,8 +10,6 @@ abstract class BaseCommand extends Command {
       default: 'matter.yml',
     }),
   }
-
-  static args: {}
 
   protected parsedArgs?: ArgOutput
   protected parsedFlags?: FlagOutput
