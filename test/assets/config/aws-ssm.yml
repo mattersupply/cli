@@ -1,0 +1,14 @@
+app:
+  name: 'my-app'
+aws:
+  region: 'us-west-2'
+  profile: 'cargo-admin'
+remoteConfig:
+  source: awsSsm
+
+  awsSsm:
+    nullValue: 'NULL'
+stages:
+  - my-stage
+  - staging
+  - production

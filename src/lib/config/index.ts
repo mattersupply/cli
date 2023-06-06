@@ -2,11 +2,13 @@ import { Config } from '../matter-config'
 import { AWSSSMRemoteConfigurationService } from './aws-ssm'
 import { RemoteConfigurationService } from './config'
 import { VaultRemoteConfigurationService } from './hashicorp-vault'
+import { LocalFileConfigurationService } from './local-file'
 
 // Factory to return the config service
 enum RemoteConfigSource {
   awsSsm = 'awsSsm',
   vault = 'vault',
+  local = 'local',
 }
 
 export async function createRemoteConfigService(
@@ -22,6 +24,8 @@ export async function createRemoteConfigService(
       await s.init()
       return s
     }
+    case RemoteConfigSource.local:
+      return new LocalFileConfigurationService(config)
     default:
       throw new Error(`Unknown remote config source: ${source}`)
   }
