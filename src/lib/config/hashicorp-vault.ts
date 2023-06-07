@@ -14,7 +14,7 @@ const pathTemplateOptions = {
   interpolate: /{(.+?)}/g,
 }
 
-interface MappedSecret {
+export interface MappedSecret {
   key: string
   value?: string
   metadata: {
@@ -32,16 +32,9 @@ export class VaultRemoteConfigurationService implements RemoteConfigurationServi
 
   private isInitialized = false
 
-  constructor(config: Config) {
+  constructor(config: Config, vaultClient: VaultClient) {
     this.config = config
-
-    this.vaultClient = new VaultClient(
-      this.getConfigValue<string>('address', ''),
-      this.getConfigValue<string>('namespace', ''),
-      {
-        mountPoint: this.getConfigValue<string>('secretMountPoint', ''),
-      }
-    )
+    this.vaultClient = vaultClient
   }
 
   async init(force = false) {
@@ -327,6 +320,8 @@ export class VaultRemoteConfigurationService implements RemoteConfigurationServi
       path = path.replace(/\/$/, '')
     }
 
+    // console.log('Values: ', values)
+
     // Keys are stored as paths, so we prefix them with the current "path" to make them absolute.
     let secrets = Object.entries(values).reduce<{ [key: string]: unknown }>((acc, [key, value]) => {
       acc[`${path}/${key}`] = {
@@ -340,6 +335,7 @@ export class VaultRemoteConfigurationService implements RemoteConfigurationServi
     if (recursive) {
       // If the path is a directory, we need to recursively fetch all secrets for all "subdirectories".
       const keys = await this.vaultClient.kvList(path)
+      // console.log('Lists: ', keys)
       if (keys != null && keys.keys.length > 0) {
         const nestedValues = await Promise.all(
           keys.keys.map(async (key: string) => {
@@ -365,7 +361,7 @@ interface VaultKeyValueConfig {
 
 // TODO: This class here was made on a budget, it's not very good.
 // For now it's working for our purposes, but it should be improved.
-class VaultClient {
+export class VaultClient {
   axiosClient: AxiosInstance
   kvConfig: VaultKeyValueConfig
 
@@ -415,6 +411,7 @@ class VaultClient {
     const requestPath = `/v1/${this.kvConfig.mountPoint}/data/${path}`
     try {
       const result = await this.axiosClient.get(requestPath)
+      console.log(result.data.data)
       return result.data.data
     } catch (e: any) {
       if (e.response?.status === 404) {

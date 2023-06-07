@@ -8,7 +8,6 @@ import {
   GetParametersCommand,
 } from '@aws-sdk/client-ssm'
 import { Config } from '../matter-config'
-import { createSSMConfigManager } from './aws'
 import {
   EntryType,
   RemoteConfigurationConfig,
@@ -22,9 +21,9 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
   protected config: Config
   protected ssm: SSMClient
 
-  constructor(config: Config) {
+  constructor(config: Config, ssm: SSMClient) {
     this.config = config
-    this.ssm = createSSMConfigManager(config)
+    this.ssm = ssm
   }
 
   async getAllCombinedEntries(stages: string[]) {
@@ -38,16 +37,14 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
   }
 
   async getEntries(keys: string[], stages: string[]) {
-    const paths = stages.flatMap((stage) =>
-      keys.flatMap((key) => pathFromKey(key, stage, this.config))
-    )
+    const paths = stages.flatMap((stage) => keys.flatMap((key) => this.pathFromKey(key, stage)))
 
     const ssmPathParameters = flatten(
-      await Promise.all(paths.map(async (path) => this._getParametersByPath(path)))
+      await Promise.all(paths.map(async (path) => this.getParametersByPath(path)))
     )
 
     // splitting list into chunks of 10 to avoid throttling
-    const names = stages.flatMap((stage) => keys.map((key) => pathFromKey(key, stage, this.config)))
+    const names = stages.flatMap((stage) => keys.map((key) => this.pathFromKey(key, stage)))
     const perChunk = 10
     const chunkedNames = names.reduce<string[][]>((acc, key, index) => {
       const chunkIndex = Math.floor(index / perChunk)
@@ -61,11 +58,11 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
     }, [])
 
     const ssmNameParameters = flatten(
-      await Promise.all(chunkedNames.map(async (chunk) => await this._getParameters(chunk)))
+      await Promise.all(chunkedNames.map(async (chunk) => await this.getParameters(chunk)))
     )
 
     const combinedParameters = [...ssmNameParameters, ...ssmPathParameters]
-    const remoteConfig = configFromParameters(combinedParameters, this.config)
+    const remoteConfig = this.configFromParameters(combinedParameters)
 
     return remoteConfig
   }
@@ -74,7 +71,7 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
     const ssmParameters = await Promise.all(
       stages.map(async (stage) => ({
         stage: stage,
-        values: await this._listParametersByStage(stage),
+        values: await this.listParametersByStage(stage),
       }))
     )
 
@@ -82,7 +79,7 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
       return {
         stage: parameterSet.stage,
         entries: parameterSet.values.map((value) => {
-          return entryFromParameter(value, this.config)
+          return this.entryFromParameter(value)
         }),
       }
     })
@@ -96,7 +93,7 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
     const entriesWithPath = stages.flatMap((stage) =>
       entries.map((entry) => ({
         ...entry,
-        key: pathFromKey(entry.key, stage, this.config),
+        key: this.pathFromKey(entry.key, stage),
       }))
     )
 
@@ -104,7 +101,7 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
       entriesWithPath.map(async (entry) => {
         const input = {
           Name: entry.key,
-          Value: formatEntryValue(entry.value, this.config),
+          Value: this.formatEntryValue(entry.value),
           Type: formatParameterType(entry.type || EntryType.string),
           Overwrite: true,
         }
@@ -121,7 +118,7 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
   }
 
   async deleteEntries(keys: string[], stages: string[]) {
-    const names = stages.flatMap((stage) => keys.map((key) => pathFromKey(key, stage, this.config)))
+    const names = stages.flatMap((stage) => keys.map((key) => this.pathFromKey(key, stage)))
 
     const chunkedNames = chunkArray(names, 10)
     const entries = stages.reduce<{ [stage: string]: RemoteConfigurationDeleteResult }>(
@@ -138,8 +135,8 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
       }
 
       return paths.forEach((path) => {
-        const stage = stageFromPath(path, this.config)
-        const key = keyFromPath(path, stage, this.config)
+        const stage = this.stageFromPath(path)
+        const key = this.keyFromPath(path, stage)
 
         entries[stage][status].push(key)
       })
@@ -161,7 +158,7 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
     return stages.map((stage) => entries[stage])
   }
 
-  private async _getParameters(names: string[]) {
+  private async getParameters(names: string[]) {
     const input = {
       Names: names,
       WithDecryption: true,
@@ -174,12 +171,12 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
     return parameters
   }
 
-  private async _getParametersByPath(path: string, nextToken?: string) {
+  private async getParametersByPath(path: string, nextToken?: string) {
     const input = {
       Path: path,
       Recursive: true,
       WithDecryption: true,
-      MaxResults: 1,
+      MaxResults: 10,
       NextToken: nextToken,
     }
 
@@ -188,20 +185,128 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
     const entriesResult = await this.ssm.send(command)
     let parameters = entriesResult.Parameters || []
     if (entriesResult.NextToken) {
-      const nextEntries = await this._getParametersByPath(path, entriesResult.NextToken)
+      const nextEntries = await this.getParametersByPath(path, entriesResult.NextToken)
       parameters = [...parameters, ...nextEntries]
     }
 
     return parameters
   }
 
-  private async _listParametersByStage(stage: string) {
-    return this._getParametersByPath(pathNamespace(stage, this.config))
+  private async listParametersByStage(stage: string) {
+    return this.getParametersByPath(this.pathNamespace(stage))
   }
-}
 
-function pathNamespace(stage: string, config: Config) {
-  return `/${config.get('app.name')}/${stage}/`
+  protected getConfigValue<T>(key: string, defaultValue?: T): T | string {
+    return this.config.get(`remoteConfig.awsSsm.${key}`, defaultValue)
+  }
+
+  /**
+   * Given a set of parameters, returns a RemoteConfigurationConfig.
+   * This determines the stage from the parameter path.
+   */
+  protected configFromParameters(parameters: Parameter[]) {
+    const configs: { [key: string]: RemoteConfigurationConfig } = {}
+    parameters.forEach((parameter) => {
+      if (!parameter.Name) {
+        throw new Error(`Parameter name is undefined.`)
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const stage = this.stageFromPath(parameter.Name!)
+      const entry = this.entryFromParameter(parameter)
+
+      if (has(configs, stage)) {
+        configs[stage].entries.push(entry)
+      } else {
+        configs[stage] = { stage, entries: [entry] }
+      }
+    })
+
+    return Object.values(configs)
+  }
+
+  /**
+   * Parses the stage from a SSM key path.
+   */
+  protected stageFromPath(path: string) {
+    const appName = this.config.get('app.name')
+    if (!appName) {
+      throw new Error(`Unable to determine app name from config.`)
+    }
+
+    return path.split('/')[2]
+  }
+
+  /**
+   * Transforms a SSM Parameter into a RemoteConfigurationEntry.
+   */
+  protected entryFromParameter(parameter: Parameter): RemoteConfigurationEntry {
+    if (!parameter.Name) {
+      throw new Error(`Parameter name is undefined.`)
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const stage = this.stageFromPath(parameter.Name!)
+    const entry = {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      key: this.keyFromPath(parameter.Name!, stage),
+      value: this.parseConfigValue(parameter.Value),
+      type: determineType(parameter.Type),
+      description: `Version: ${parameter.Version} - Key: ${parameter.Name} - Last Modified: ${parameter.LastModifiedDate}}`,
+    }
+
+    return entry
+  }
+
+  /**
+   * Formats a value for a SSM Parameter according to the configuration.
+   * This is mostly used for NULL values, since AWS SSM does not support null/empty values.
+   */
+  protected formatEntryValue(value: string | null | undefined) {
+    const nullValue = this.getConfigValue<string>('nullValue')
+    if (typeof value === 'string') {
+      if (value === '') {
+        return nullValue
+      }
+    } else if (!value) {
+      return nullValue
+    }
+
+    return value
+  }
+
+  /**
+   * Parses a value from a SSM Parameter according to the configuration.
+   * This is mostly used for NULL values, since AWS SSM does not support null/empty values.
+   */
+  protected parseConfigValue(value: string | undefined) {
+    const nullValue = this.getConfigValue('nullValue')
+    if (value === nullValue) {
+      return null
+    }
+
+    return value
+  }
+
+  protected pathNamespace(stage: string) {
+    return `/${this.config.get('app.name')}/${stage}/`
+  }
+
+  /**
+   * Turns a key into a namespaced, cleaned up key-path.
+   * e.g. key = 'foo/bar_baz' and stage = 'develop' would return '/my-app/develop/foo/bar-baz'
+   */
+  protected pathFromKey(key: string, stage: string) {
+    const transformedKey = sanitizeKey(key)
+    return `${this.pathNamespace(stage)}${transformedKey}`
+  }
+
+  /**
+   * Parses the key from a SSM key path.
+   */
+  protected keyFromPath(path: string, stage: string) {
+    return path.replace(this.pathNamespace(stage), '')
+  }
 }
 
 /**
@@ -213,55 +318,6 @@ function sanitizeKey(key: string) {
     .map((v) => kebabCase(v))
     .join('/')
     .replace(/\/\//, '/')
-}
-
-/**
- * Turns a key into a namespaced, cleaned up key-path.
- * e.g. key = 'foo/bar_baz' and stage = 'develop' would return '/my-app/develop/foo/bar-baz'
- */
-function pathFromKey(key: string, stage: string, config: Config) {
-  const transformedKey = sanitizeKey(key)
-  return `${pathNamespace(stage, config)}${transformedKey}`
-}
-
-/**
- * Parses the key from a SSM key path.
- */
-function keyFromPath(path: string, stage: string, config: Config) {
-  return path.replace(pathNamespace(stage, config), '')
-}
-
-/**
- * Parses the stage from a SSM key path.
- */
-function stageFromPath(path: string, config: Config) {
-  const appName = config.get('app.name')
-  if (!appName) {
-    throw new Error(`Unable to determine app name from config.`)
-  }
-
-  return path.split('/')[2]
-}
-
-/**
- * Transforms a SSM Parameter into a RemoteConfigurationEntry.
- */
-function entryFromParameter(parameter: Parameter, config: Config): RemoteConfigurationEntry {
-  if (!parameter.Name) {
-    throw new Error(`Parameter name is undefined.`)
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const stage = stageFromPath(parameter.Name!, config)
-  const entry = {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    key: keyFromPath(parameter.Name!, stage, config),
-    value: parseConfigValue(parameter.Value, config),
-    type: determineType(parameter.Type),
-    description: `Version: ${parameter.Version} - Key: ${parameter.Name} - Last Modified: ${parameter.LastModifiedDate}}`,
-  }
-
-  return entry
 }
 
 /**
@@ -292,57 +348,4 @@ function formatParameterType(type: EntryType) {
   }
 
   throw new Error(`Unknown type: ${type}`)
-}
-
-/**
- * Formats a value for a SSM Parameter according to the configuration.
- * This is mostly used for NULL values, since AWS SSM does not support null/empty values.
- */
-function formatEntryValue(value: string | null | undefined, config: Config) {
-  if (typeof value === 'string') {
-    if (value === '') {
-      return config.get('awsSsm.nullValue')
-    }
-  } else if (!value) {
-    return config.get('awsSsm.nullValue')
-  }
-
-  return value
-}
-
-/**
- * Parses a value from a SSM Parameter according to the configuration.
- * This is mostly used for NULL values, since AWS SSM does not support null/empty values.
- */
-function parseConfigValue(value: string | undefined, config: Config) {
-  if (value === config.get('awsSsm.nullValue')) {
-    return null
-  }
-
-  return value
-}
-
-/**
- * Given a set of parameters, returns a RemoteConfigurationConfig.
- * This determines the stage from the parameter path.
- */
-function configFromParameters(parameters: Parameter[], config: Config) {
-  const configs: { [key: string]: RemoteConfigurationConfig } = {}
-  parameters.forEach((parameter) => {
-    if (!parameter.Name) {
-      throw new Error(`Parameter name is undefined.`)
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const stage = stageFromPath(parameter.Name!, config)
-    const entry = entryFromParameter(parameter, config)
-
-    if (has(configs, stage)) {
-      configs[stage].entries.push(entry)
-    } else {
-      configs[stage] = { stage, entries: [entry] }
-    }
-  })
-
-  return Object.values(configs)
 }

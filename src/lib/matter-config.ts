@@ -69,7 +69,6 @@ export async function getMatterConfig(path?: string | null): Promise<Config> {
   }
 
   validate(data)
-
   // return data
   return data
 }

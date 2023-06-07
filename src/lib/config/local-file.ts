@@ -4,19 +4,12 @@ import * as crypto from 'crypto'
 import * as path from 'path'
 import { Config } from '../matter-config'
 import {
-  EntryType,
   RemoteConfigurationConfig,
   RemoteConfigurationDeleteResult,
   RemoteConfigurationEntry,
   RemoteConfigurationService,
 } from './config'
 import { combineEntries } from './utils'
-import { template } from 'lodash'
-import { basename, dirname } from 'path'
-
-const templateSettings = {
-  interpolate: /\${{[\s]*([a-zA-Z._-]+?)[\s]*}}/g,
-}
 
 export class LocalFileConfigurationService implements RemoteConfigurationService {
   protected config: Config
@@ -123,7 +116,6 @@ export class LocalFileConfigurationService implements RemoteConfigurationService
     }
 
     const fileContents = fs.readFileSync(path)
-
     const decrypted = this.decrypt(fileContents, this.password)
 
     const config = yaml.load(decrypted.toString('utf-8')) as RemoteConfigurationEntry[]
