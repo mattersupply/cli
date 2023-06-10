@@ -21,7 +21,7 @@
     "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "@oclif/test": "^2.3.21",
+    "@oclif/test": "^2.3.22",
     "@types/chai": "^4",
     "@types/js-yaml": "^4.0.5",
     "@types/mocha": "^9.0.0",
