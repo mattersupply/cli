@@ -2,10 +2,18 @@ import { assert } from 'chai'
 import * as fs from 'fs'
 import * as sinon from 'sinon'
 import * as yaml from 'js-yaml'
-import { VaultClient, VaultRemoteConfigurationService } from '../src/lib/config/hashicorp-vault'
+import { AWSSSMRemoteConfigurationService } from '../src/lib/config/aws-ssm'
 import { Config, getMatterConfig } from '../src/lib/matter-config'
-import { get, has, isEmpty, isObject, merge, pickBy, set, unset } from 'lodash'
+import { get, has, merge, pickBy, set, unset } from 'lodash'
 import { RemoteConfigurationEntry } from '../src/lib/config/config'
+import {
+  DeleteActivationCommand,
+  DeleteParametersCommand,
+  GetParametersByPathCommand,
+  GetParametersCommand,
+  PutParameterCommand,
+  SSMClient,
+} from '@aws-sdk/client-ssm'
 import { removeMetadata, removeMetadataFromConfigs } from './utils/config'
 
 const testConfig = {
@@ -13,82 +21,145 @@ const testConfig = {
     name: 'my-test',
   },
 
+  aws: {
+    region: 'us-west-2',
+  },
+
   remoteConfig: {
-    source: 'vault',
-    vault: {
-      address: 'https://example.com',
-      namespace: 'test',
-
-      pathFormat: '{appName}/{stage}/{key}',
-      secretMountPoint: 'secret',
-
-      auth: {
-        mountPoint: 'test',
-        options: {
-          test: 'test-option',
-        },
-      },
+    source: 'awsSsm',
+    awsSsm: {
+      nullValue: 'NULL',
     },
   },
 
   stages: ['test-stage-one', 'test-stage-two'],
 }
 
-describe('Vault Remote Config Provider', () => {
+describe('AWS SSM Remote Config Provider', () => {
   let config: Config
-  let configService: VaultRemoteConfigurationService
-
-  const defaultMetadata = {
-    created_time: '2021-01-01T00:00:00.000000Z',
-    deletion_time: '',
-    destroyed: false,
-    version: 1,
-    custom_metadata: null,
-  }
+  let configService: AWSSSMRemoteConfigurationService
 
   const testDataStageOne = {
-    'test-key-one': { key: 'test-key-one', value: 'test-value-one' },
-    'test-key-both-different': {
-      key: 'test-key-both-different',
+    '/test-key-one': {
+      key: '/test-key-one',
+      value: 'test-value-one',
+    },
+    '/test-key-both-different': {
+      key: '/test-key-both-different',
       value: 'test-value-both-one',
     },
-    nested: {
-      'test-key-nested': {
-        key: 'nested/test-key-nested',
-        value: 'test-value-nested',
-      },
-      more: {
-        'test-key-more-nested': {
-          key: 'nested/more/test-key-more-nested',
-          value: 'test-value-nested',
-        },
-      },
+    '/nested/test-key-nested': {
+      key: '/nested/test-key-nested',
+      value: 'test-value-nested',
     },
-
-    // 'test-key-path/': {
-    //   key: 'test-key-path/',
-    //   // value: {
-    //   //   'test-key-path-one': 'test-value-path-one',
-    //   // },
-    // },'
+    '/nested/more/test-key-more-nested': {
+      key: '/nested/more/test-key-more-nested',
+      value: 'test-value-nested',
+    },
   }
 
   const testDataStageTwo = {
-    'test-key-two': { key: 'test-key-two', value: 'test-value-two' },
-    'test-key-both-different': {
-      key: 'test-key-both-different',
+    '/test-key-two': {
+      key: '/test-key-two',
+      value: 'test-value-two',
+    },
+    '/test-key-both-different': {
+      key: '/test-key-both-different',
       value: 'test-value-both-two',
     },
   }
 
   const testDataBothStages = {
-    'test-key-both-same': {
-      key: 'test-key-both-same',
+    '/test-key-both-same': {
+      key: '/test-key-both-same',
       value: 'test-value-both-same',
     },
   }
 
   let database: { [stage: string]: { [key: string]: any } } = {}
+
+  function parameterFromEntry(
+    { key, value }: RemoteConfigurationEntry,
+    app: string,
+    stage: string
+  ) {
+    key = `/${app}/${stage}${key}`
+
+    return {
+      ARN: `arn:aws:ssm:invalid:1111:parameter${key}`,
+      DataType: 'text',
+      LastModifiedDate: new Date(),
+      Name: key,
+      Type: 'String',
+      Value: value,
+      Version: 1,
+    }
+  }
+
+  function deleteParametersCommandMock(names: string[]) {
+    names.forEach((name) => {
+      const [app, stage] = name.split('/').filter((p) => p !== '')
+      const key = name.replace(`/${app}/${stage}`, '')
+
+      const keyPath = `${app}.${stage}.${key}`
+
+      unset(database, keyPath)
+    })
+
+    return {
+      DeletedParameters: names,
+      FailedParameters: [],
+    }
+  }
+
+  function putParameterCommandMock(name: string, value: string) {
+    const [app, stage] = name.split('/').filter((p) => p !== '')
+    const key = name.replace(`/${app}/${stage}`, '')
+
+    const keyPath = `${app}.${stage}.${key}`
+
+    set(database, keyPath, { key: key, value })
+  }
+
+  function getParametersByPathCommandMock(path: string, recursive: boolean = false) {
+    const [app, stage] = path.split('/').filter((p) => p !== '')
+    const key = path.replace(`/${app}/${stage}`, '')
+    const stageSecrets = get(database, `${app}.${stage}`)
+
+    if (!stageSecrets) {
+      return null
+    }
+
+    const data = pickBy(stageSecrets, (v, k) => {
+      const kSplit = k.split('/')
+      kSplit.pop()
+      const pathToKey = `/${kSplit.join('/')}`
+
+      return pathToKey.startsWith(key)
+    })
+
+    return {
+      Parameters: Object.values(data).map((v) => parameterFromEntry(v, app, stage)),
+    }
+  }
+
+  function getParametersCommandMock(names: string[]) {
+    const data = names.reduce<{ [key: string]: any }>((acc, name) => {
+      const [app, stage] = name.split('/').filter((p) => p !== '')
+      const key = name.replace(`/${app}/${stage}`, '')
+      const value = get(database, `${app}.${stage}.${key}`)
+
+      if (has(value, 'value')) {
+        return { ...acc, [name]: parameterFromEntry(value as any, app, stage) }
+      }
+
+      return acc
+    }, {})
+
+    return {
+      Parameters: Object.values(data),
+    }
+  }
 
   beforeEach(async function () {
     // We could just stub the config, but this is a good test to make sure it works end-to-end.
@@ -97,91 +168,30 @@ describe('Vault Remote Config Provider', () => {
     config = await getMatterConfig('fakepath.yml')
     sinon.restore()
 
-    const vaultClient = new VaultClient('fake', 'fake', { mountPoint: 'fake' })
+    const ssmStub = sinon.createStubInstance(SSMClient)
 
     database = {
-      'test-stage-one': merge({}, testDataStageOne, testDataBothStages),
-      'test-stage-two': merge({}, testDataStageTwo, testDataBothStages),
+      'my-test': {
+        'test-stage-one': merge({}, testDataStageOne, testDataBothStages),
+        'test-stage-two': merge({}, testDataStageTwo, testDataBothStages),
+      },
     }
 
-    sinon.stub(vaultClient, 'kvGet').callsFake(async (path: string) => {
-      const [app] = path.split('/')
-      const key = path.replace(`${app}`, '').replace(/^\//, '').replace(/\//g, '.')
+    configService = new AWSSSMRemoteConfigurationService(config!, ssmStub as any)
 
-      const secret = get(database, key)
-      const secretValue = pickBy(secret, (v, k) => has(v, 'value'))
-
-      if (isEmpty(secretValue)) {
-        return null
+    ssmStub.send.callsFake(async (command: any) => {
+      if (command instanceof GetParametersByPathCommand) {
+        return getParametersByPathCommandMock(command.input.Path!, command.input.Recursive || false)
+      } else if (command instanceof GetParametersCommand) {
+        return getParametersCommandMock(command.input.Names!)
+      } else if (command instanceof PutParameterCommand) {
+        return putParameterCommandMock(command.input.Name!, command.input.Value!)
+      } else if (command instanceof DeleteParametersCommand) {
+        return deleteParametersCommandMock(command.input.Names!)
+      } else {
+        console.log('Unhandled Command: ', command)
       }
-
-      const data = Object.entries(secretValue).reduce((acc, [k, v]) => {
-        return { ...acc, [k]: v.value }
-      }, {})
-
-      return { data: data, metadata: defaultMetadata }
     })
-
-    sinon.stub(vaultClient, 'kvMetadataDelete')
-    sinon.stub(vaultClient, 'kvList').callsFake(async (path: string) => {
-      const [app] = path.split('/')
-      let key = path.replace(`${app}`, '').replace(/^\//, '').replace(/\//g, '.')
-      const secret = get(database, key)
-      const secretFilesOrDirectories = pickBy(secret, (v, k) => !has(v, 'value'))
-
-      const list = {
-        keys: Object.keys(secretFilesOrDirectories).flatMap((k) => {
-          // Check if the object at this key contains objects with keys (i.e. is a directory)
-          const isFile =
-            Object.entries(get(secretFilesOrDirectories, k)).filter(
-              ([k, v]) => has(v, 'value') && isObject(v)
-            ).length > 0
-          const isDir =
-            Object.entries(get(secretFilesOrDirectories, k)).filter(
-              ([k, v]) => !has(v, 'value') && isObject(v)
-            ).length > 0
-
-          let keys: string[] = []
-          if (isFile) {
-            keys.push(k)
-          }
-
-          if (isDir) {
-            keys.push(`${k}/`)
-          }
-
-          return keys
-        }),
-      }
-
-      return list
-    })
-
-    sinon
-      .stub(vaultClient, 'kvPatch')
-      .callsFake(async (path: string, entry: string, value: string | null) => {
-        const [app] = path.split('/')
-        const keyPath = path.replace(`${app}`, '').replace(/^\//, '') + '/' + entry
-        const key = keyPath.replace(/\//g, '.')
-
-        if (value === null) {
-          unset(database, key)
-        } else {
-          set(database, key, { key: keyPath, value: value })
-        }
-      })
-
-    sinon
-      .stub(vaultClient, 'kvPut')
-      .callsFake(async (path: string, entry: string, value: string | null) => {
-        const [app] = path.split('/')
-        const keyPath = path.replace(`${app}`, '').replace(/^\//, '') + '/' + entry
-        const key = keyPath.replace(/\//g, '.')
-
-        set(database, key, { key: keyPath, value: value })
-      })
-
-    configService = new VaultRemoteConfigurationService(config!, vaultClient)
   })
 
   afterEach(function () {
@@ -219,21 +229,57 @@ describe('Vault Remote Config Provider', () => {
   describe('Retrieve entries', () => {
     it('getAllEntries should get all entries for multiple stages', async function () {
       const entries = await configService.getAllEntries(['test-stage-one', 'test-stage-two'])
-
-      // const expectedResult = [
-      //   { stage: 'test-stage-one', entries: testDataStageOne.concat(testDataBothStages) },
-      //   { stage: 'test-stage-two', entries: testDataStageTwo.concat(testDataBothStages) },
-      // ]
-
-      // assert.deepEqual(entries, expectedResult)
+      const expectedResult = [
+        {
+          stage: 'test-stage-one',
+          entries: [
+            {
+              key: 'test-key-one',
+              value: 'test-value-one',
+            },
+            {
+              key: 'test-key-both-different',
+              value: 'test-value-both-one',
+            },
+            {
+              key: 'nested/test-key-nested',
+              value: 'test-value-nested',
+            },
+            {
+              key: 'nested/more/test-key-more-nested',
+              value: 'test-value-nested',
+            },
+            {
+              key: 'test-key-both-same',
+              value: 'test-value-both-same',
+            },
+          ],
+        },
+        {
+          stage: 'test-stage-two',
+          entries: [
+            {
+              key: 'test-key-two',
+              value: 'test-value-two',
+            },
+            {
+              key: 'test-key-both-different',
+              value: 'test-value-both-two',
+            },
+            {
+              key: 'test-key-both-same',
+              value: 'test-value-both-same',
+            },
+          ],
+        },
+      ]
+      assert.deepEqual(removeMetadataFromConfigs(entries), expectedResult)
     })
-
     it('getAllCombinedEntries should combine all entries for multiple stages', async function () {
       const entries = await configService.getAllCombinedEntries([
         'test-stage-one',
         'test-stage-two',
       ])
-
       const expectedResult = [
         { key: 'test-key-one', value: 'test-value-one' },
         { key: 'test-key-both-different', value: 'test-value-both-one' },
@@ -242,17 +288,14 @@ describe('Vault Remote Config Provider', () => {
         { key: 'nested/test-key-nested', value: 'test-value-nested' },
         { key: 'nested/more/test-key-more-nested', value: 'test-value-nested' },
       ].sort((a, b) => a.key.localeCompare(b.key))
-
       assert.deepEqual(
         removeMetadata(entries.sort((a, b) => a.key.localeCompare(b.key))),
         expectedResult
       )
-
       const entriesReversed = await configService.getAllCombinedEntries([
         'test-stage-two',
         'test-stage-one',
       ])
-
       const expectedResultReversed = [
         { key: 'test-key-two', value: 'test-value-two' },
         { key: 'test-key-both-different', value: 'test-value-both-two' },
@@ -261,19 +304,16 @@ describe('Vault Remote Config Provider', () => {
         { key: 'nested/test-key-nested', value: 'test-value-nested' },
         { key: 'nested/more/test-key-more-nested', value: 'test-value-nested' },
       ].sort((a, b) => a.key.localeCompare(b.key))
-
       assert.deepEqual(
         removeMetadata(entriesReversed.sort((a, b) => a.key.localeCompare(b.key))),
         expectedResultReversed
       )
     })
-
     it('getEntries should get entries for multiple stages', async function () {
       const entries = await configService.getEntries(
         ['test-key-one', 'test-key-two', 'test-key-both-different'],
         ['test-stage-one', 'test-stage-two']
       )
-
       const expectedResult = [
         {
           stage: 'test-stage-one',
@@ -302,16 +342,13 @@ describe('Vault Remote Config Provider', () => {
           ],
         },
       ]
-
       assert.deepEqual(removeMetadataFromConfigs(entries), expectedResult)
     })
-
     it('getCombinedEntries should combine entries for multiple stages', async function () {
       const entries = await configService.getCombinedEntries(
         ['test-key-one', 'test-key-two', 'test-key-both-different'],
         ['test-stage-one', 'test-stage-two']
       )
-
       const expectedResult = [
         {
           key: 'test-key-one',
@@ -326,7 +363,6 @@ describe('Vault Remote Config Provider', () => {
           value: 'test-value-two',
         },
       ]
-
       assert.deepEqual(removeMetadata(entries), expectedResult)
       // The reverse order of stages is covered in a previous test.
     })
@@ -336,14 +372,11 @@ describe('Vault Remote Config Provider', () => {
     it('deleteEntries should delete entries', async function () {
       await configService.deleteEntries(['test-key-two'], ['test-stage-two']) // Only delete "test-key-two" from stage two
       await configService.deleteEntries(['test-key-both-same'], ['test-stage-one']) // Only delete "both-same" from stage one
-
       await configService.deleteEntries(
         ['test-key-both-different'],
         ['test-stage-one', 'test-stage-two']
       ) // Delete "both-different" from both stages
-
       const entries = await configService.getAllEntries(['test-stage-one', 'test-stage-two'])
-
       const expectedResult = [
         {
           stage: 'test-stage-one',
@@ -366,7 +399,6 @@ describe('Vault Remote Config Provider', () => {
           ],
         },
       ]
-
       assert.deepEqual(removeMetadataFromConfigs(entries), expectedResult)
     })
   })

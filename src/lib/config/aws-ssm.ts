@@ -39,6 +39,7 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
   async getEntries(keys: string[], stages: string[]) {
     const paths = stages.flatMap((stage) => keys.flatMap((key) => this.pathFromKey(key, stage)))
 
+    // console.log('Paths', paths)
     const ssmPathParameters = flatten(
       await Promise.all(paths.map(async (path) => this.getParametersByPath(path)))
     )
@@ -84,7 +85,7 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
       }
     })
 
-    console.log('Entries: ', JSON.stringify(entries, null, 2))
+    // console.log('Entries: ', JSON.stringify(entries, null, 2))
 
     return entries
   }
@@ -166,7 +167,7 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
 
     const command = new GetParametersCommand(input)
     const entriesResult = await this.ssm.send(command)
-
+    // console.log('Result: ', entriesResult)
     const parameters = entriesResult.Parameters || []
     return parameters
   }
@@ -183,6 +184,7 @@ export class AWSSSMRemoteConfigurationService implements RemoteConfigurationServ
     const command = new GetParametersByPathCommand(input)
 
     const entriesResult = await this.ssm.send(command)
+    // console.log('Result: ', entriesResult)
     let parameters = entriesResult.Parameters || []
     if (entriesResult.NextToken) {
       const nextEntries = await this.getParametersByPath(path, entriesResult.NextToken)
