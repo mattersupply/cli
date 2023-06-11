@@ -5,6 +5,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    env:
+      CI_COMMIT_MESSAGE: 'Update version: ${{ github.event.release.tag_name }}'
+      CI_COMMIT_AUTHOR: CI
+
     steps:
       - uses: actions/checkout@v3
       # Setup .npmrc file to publish to npm
@@ -15,6 +20,14 @@ jobs:
           # Defaults to the user or organization that owns the workflow file
           scope: '@mattersupply'
       - run: yarn
+      - run: yarn version --new-version ${{ github.event.release.tag_name }}
+      - name: Commit README.md
+        run: |
+          git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
+          git config --global user.email "username@users.noreply.github.com"
+          git add README.md
+          git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
+          git push
       - run: yarn publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
