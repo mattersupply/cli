@@ -1,7 +1,7 @@
 {
   "name": "@mattersupply/cli",
   "description": "Matter Supply CLI",
-  "version": "1.0.1-0",
+  "version": "1.0.1-weekly.1",
   "author": "@mattersupply.co",
   "bin": {
     "matter": "./bin/run"
