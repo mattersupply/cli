@@ -11,7 +11,7 @@ jobs:
 
     env:
       CI_COMMIT_MESSAGE: Update README.md
-      CI_COMMIT_AUTHOR: CI
+      CI_COMMIT_AUTHOR: CI Bot <ci@msco.dev>
 
     steps:
       - uses: actions/checkout@v3
