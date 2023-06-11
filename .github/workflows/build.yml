@@ -30,6 +30,10 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
 
+    env:
+      CI_COMMIT_MESSAGE: Update README.md
+      CI_COMMIT_AUTHOR: CI
+
     steps:
       - uses: actions/checkout@v3
 
@@ -40,4 +44,13 @@ jobs:
           cache: 'yarn'
 
       - run: yarn
-      - run: yarn pack
+      - run: yarn update-readme
+
+      - name: Commit README.md
+        if: github.event_name == 'push'
+        run: |
+          git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
+          git config --global user.email "username@users.noreply.github.com"
+          git add README.md
+          git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
+          git push

@@ -75,6 +75,7 @@
   "repository": "mattersupply/cli",
   "scripts": {
     "build": "shx rm -rf dist && tsc -b",
+    "update-readme": "oclif readme",
     "lint": "eslint . --ext .ts --config .eslintrc",
     "postpack": "shx rm -f oclif.manifest.json",
     "prepack": "yarn build && oclif manifest && oclif readme",
