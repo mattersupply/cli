@@ -28,7 +28,7 @@ jobs:
       - run: yarn version --new-version ${{ github.event.release.tag_name }}
       - name: Push Version Change
         run: |
-          git push
+          git push origin HEAD:master
       - run: yarn publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
