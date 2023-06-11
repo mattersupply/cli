@@ -16,14 +16,16 @@ At the core is a configuration structure for every project. Every project should
 If your config file is somewhere else, you can always set the path via `matter -c path/to/config.yml`.
 
 <!-- toc -->
-* [@mattersupply/cli](#mattersupplycli)
-* [Usage](#usage)
-* [Commands](#commands)
+
+- [@mattersupply/cli](#mattersupplycli)
+- [Usage](#usage)
+- [Commands](#commands)
 <!-- tocstop -->
 
 # Usage
 
 <!-- usage -->
+
 ```sh-session
 $ npm install -g @mattersupply/cli
 $ matter COMMAND
@@ -35,18 +37,14 @@ USAGE
   $ matter COMMAND
 ...
 ```
+
 <!-- usagestop -->
-
-## Notion
-
-This is an internal tool, so make sure you track as much information as you can here:
-
-https://www.notion.so/mattersupply/CLI-ec537e40999d47ef9b5a5d7c32cf48c6
 
 # Commands
 
 <!-- commands -->
-* [`matter help [COMMANDS]`](#matter-help-commands)
+
+- [`matter help [COMMANDS]`](#matter-help-commands)
 
 ## `matter help [COMMANDS]`
 
@@ -67,4 +65,5 @@ DESCRIPTION
 ```
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v5.2.9/src/commands/help.ts)_
+
 <!-- commandsstop -->
