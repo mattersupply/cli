@@ -30,7 +30,7 @@ jobs:
           scope: '@mattersupply'
       - run: yarn
       - run: yarn build
-      - run: yarn version --new-version ${VERSION}
+      - run: yarn version --new-version ${VERSION} --no-git-tag-version
 
       # - run: yarn publish
       #   env:
