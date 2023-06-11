@@ -19,6 +19,9 @@ jobs:
           node-version: '16.x'
           cache: 'yarn'
 
+      - run: yarn
+      - run: yarn build
+
       - name: Create weekly version
         run: |
           yarn version --prerelease --preid pre --no-git-tag-version
