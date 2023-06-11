@@ -13,6 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - run: |
+          TAG=${{ github.event.release.tag_name }}
+          echo "VERSION=${TAG#v}" >> $GITHUB_ENV
+
       - name: Setup Git
         run: |
           git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
@@ -26,10 +30,15 @@ jobs:
           scope: '@mattersupply'
       - run: yarn
       - run: yarn build
-      - run: yarn version --new-version ${{ github.event.release.tag_name }}
+      - run: yarn version --new-version ${VERSION}
+
+      # - run: yarn publish
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Bump Version
+        run: yarn version --prerelease --no-git-tag-version
+
       - name: Push Version Change
         run: |
           git push origin HEAD:master
-      - run: yarn publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
