@@ -32,9 +32,9 @@ jobs:
       - run: yarn build
       - run: yarn version --new-version ${VERSION} --no-git-tag-version
 
-      # - run: yarn publish
-      #   env:
-      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: yarn publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Bump Version
         run: yarn version --prerelease --no-git-tag-version
