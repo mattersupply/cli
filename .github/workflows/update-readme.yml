@@ -1,7 +1,6 @@
 name: Update Documentation
 
 on:
-  workflow_dispatch:
   push:
     branches: [master]
 
@@ -15,6 +14,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{secrets.SERVICE_GITHUB_TOKEN}}
 
       - name: Use Node.js 16.x
         uses: actions/setup-node@v3
@@ -26,26 +27,11 @@ jobs:
       - run: yarn build
       - run: yarn update-readme
 
-      - name: Create Pull Request
-        id: create-pr
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: ${{ env.CI_COMMIT_MESSAGE }}
-          committer: ${{ env.CI_COMMIT_AUTHOR }}
-          title: ${{ env.CI_COMMIT_MESSAGE }}
-          body: |
-            This is an automated pull request to update the README.md file.
-          branch: update-readme
-          branch-suffix: timestamp
-          delete-branch: true
-          labels: |
-            documentation
-            automated pr
-
-      - name: Auto Merge PR After Checks
-        # This non-sense is because we can't automatically push to the main branch from a PR
-        run: gh pr merge --auto --merge "$PR_URL"
-        env:
-          PR_URL: ${{ steps.create-pr.outputs.pull-request-url }}
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - name: Commit README.md
+        if: github.event_name == 'push'
+        run: |
+          git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
+          git config --global user.email "username@users.noreply.github.com"
+          git add README.md
+          git diff-index --quiet HEAD || git commit -m "${{ env.CI_COMMIT_MESSAGE }}"
+          git push
