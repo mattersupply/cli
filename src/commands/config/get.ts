@@ -32,9 +32,8 @@ export class GetCommand extends BaseCommand {
   async run() {
     const { flags } = await this.parse(GetCommand)
 
-    const configService = createRemoteConfigService(this.cfg!)
-    const stages =
-      flags.stage && flags.stage.length > 0 ? flags.stage : this.cfg!.get('environments')
+    const configService = await createRemoteConfigService(this.cfg!)
+    const stages = flags.stage && flags.stage.length > 0 ? flags.stage : this.cfg!.get('stages')
     const results = await configService.getEntries(flags.entry, stages)
 
     this.debug('results', results)

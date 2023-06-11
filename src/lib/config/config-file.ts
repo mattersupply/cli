@@ -7,9 +7,9 @@ import { defaultsDeep, has } from 'lodash'
 abstract class RemoteConfigFile {
   _config: Config
   _entries?: RemoteConfigurationEntry[]
-  showDescription: boolean = false
-  showType: boolean = true
-  useSecureEntries: boolean = false
+  showDescription = false
+  showType = true
+  useSecureEntries = false
 
   constructor(config: Config) {
     this._config = config
@@ -154,7 +154,7 @@ export class YamlRemoteConfigFile extends RemoteConfigFile {
 
     return Object.entries(content).reduce<RemoteConfigurationEntry[]>((acc, [key, value]) => {
       if (typeof value === 'object') {
-        return [...acc, ...this.flattenEntries(value as { [key: string]: Object })]
+        return [...acc, ...this.flattenEntries(value as { [key: string]: object })]
       } else {
         return acc
       }

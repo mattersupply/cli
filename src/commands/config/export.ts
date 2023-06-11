@@ -52,9 +52,8 @@ export class ExportCommand extends BaseCommand {
   async run() {
     const { flags } = await this.parse(ExportCommand)
 
-    const configService = createRemoteConfigService(this.cfg!)
-    const stages =
-      flags.stage && flags.stage.length > 0 ? flags.stage : this.cfg!.get('environments')
+    const configService = await createRemoteConfigService(this.cfg!)
+    const stages = flags.stage && flags.stage.length > 0 ? flags.stage : this.cfg!.get('stages')
 
     let combinedEntries = []
     if (flags.entry && flags.entry.length > 0) {

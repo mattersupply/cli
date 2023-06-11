@@ -5,6 +5,7 @@ import { createRemoteConfigService } from '../../lib/config'
 import { createRemoteConfigFile } from '../../lib/config/config-file'
 import { OutputFormat } from '../../lib/config/config'
 import { readFileSync } from 'fs'
+import { Config } from '../../lib/matter-config'
 
 export class ImportCommand extends BaseCommand {
   static description = `Imports configuration values for one or multiple stages.`
@@ -45,12 +46,17 @@ export class ImportCommand extends BaseCommand {
   async run() {
     const { flags } = await this.parse(ImportCommand)
 
-    const configService = createRemoteConfigService(this.cfg!)
-    const stages =
-      flags.stage && flags.stage.length > 0 ? flags.stage : this.cfg!.get('environments')
+    if (!this.cfg) {
+      this.error('No configuration found.')
+    }
+
+    const config = this.cfg as Config
+    const stages = flags.stage && flags.stage.length > 0 ? flags.stage : config.get('stages')
+
+    const configService = await createRemoteConfigService(config)
 
     // TODO: Maybe this should be a utility function to wrap this logic?
-    const configFile = createRemoteConfigFile(flags.format, this.cfg!)
+    const configFile = createRemoteConfigFile(flags.format, config)
     const inputFileContents = readFileSync(flags.input)
     configFile.loadBuffer(inputFileContents)
     configFile.setUseSecureEntries(flags.preferSecure)
