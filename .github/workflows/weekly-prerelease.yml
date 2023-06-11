@@ -9,6 +9,10 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
 
+    env:
+      CI_COMMIT_MESSAGE: 'Update version to weekly'
+      CI_COMMIT_AUTHOR: CI Bot <ci@msco.dev>
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -42,3 +46,11 @@ jobs:
             Weekly Build
           draft: false
           prerelease: true
+
+      - name: Push Version Change
+        run: |
+          git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
+          git config --global user.email "username@users.noreply.github.com"
+          git add package.json
+          git commit -m "${CI_COMMIT_MESSAGE}"
+          git push
