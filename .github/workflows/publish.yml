@@ -25,6 +25,7 @@ jobs:
           # Defaults to the user or organization that owns the workflow file
           scope: '@mattersupply'
       - run: yarn
+      - run: yarn build
       - run: yarn version --new-version ${{ github.event.release.tag_name }}
       - name: Push Version Change
         run: |
