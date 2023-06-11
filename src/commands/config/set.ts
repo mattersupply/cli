@@ -39,9 +39,8 @@ export class SetCommand extends BaseCommand {
   async run() {
     const { flags } = await this.parse(SetCommand)
 
-    const configService = createRemoteConfigService(this.cfg!)
-    const stages =
-      flags.stage && flags.stage.length > 0 ? flags.stage : this.cfg!.get('environments')
+    const configService = await createRemoteConfigService(this.cfg!)
+    const stages = flags.stage && flags.stage.length > 0 ? flags.stage : this.cfg!.get('stages')
 
     const entries = flags.entry.map((entry) => {
       const [key, value] = entry.split('=')

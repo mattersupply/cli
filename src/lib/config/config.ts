@@ -11,7 +11,7 @@ export enum OutputFormat {
 
 export interface RemoteConfigurationEntry {
   key: string
-  value?: string
+  value: string | null | undefined
   type?: EntryType
   description?: string
 }

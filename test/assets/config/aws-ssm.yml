@@ -5,8 +5,9 @@ aws:
   profile: 'cargo-admin'
 remoteConfig:
   source: awsSsm
-awsSsm:
-  nullValue: 'NULL'
+
+  awsSsm:
+    nullValue: 'NULL'
 stages:
   - my-stage
   - staging

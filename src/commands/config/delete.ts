@@ -36,7 +36,7 @@ export class DeleteCommand extends BaseCommand {
   }
 
   async deleteConfigValues(stages: string[], entries: string[]) {
-    const configService = createRemoteConfigService(this.cfg!)
+    const configService = await createRemoteConfigService(this.cfg!)
     const results = await configService.deleteEntries(entries, stages)
 
     this.debug('results', results)

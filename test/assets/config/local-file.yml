@@ -1,0 +1,13 @@
+app:
+  name: 'my-app'
+remoteConfig:
+  source: local
+
+  local:
+    path: test/.out/
+    password: ${{ env.CONFIG_PASSWORD }}
+
+stages:
+  - my-stage
+  - staging
+  - production
