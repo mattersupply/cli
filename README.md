@@ -16,16 +16,14 @@ At the core is a configuration structure for every project. Every project should
 If your config file is somewhere else, you can always set the path via `matter -c path/to/config.yml`.
 
 <!-- toc -->
-
-- [@mattersupply/cli](#mattersupplycli)
-- [Usage](#usage)
-- [Commands](#commands)
+* [@mattersupply/cli](#mattersupplycli)
+* [Usage](#usage)
+* [Commands](#commands)
 <!-- tocstop -->
 
 # Usage
 
 <!-- usage -->
-
 ```sh-session
 $ npm install -g @mattersupply/cli
 $ matter COMMAND
@@ -37,20 +35,18 @@ USAGE
   $ matter COMMAND
 ...
 ```
-
 <!-- usagestop -->
 
 # Commands
 
 <!-- commands -->
-
-- [`matter config:delete`](#matter-configdelete)
-- [`matter config:export`](#matter-configexport)
-- [`matter config:get`](#matter-configget)
-- [`matter config:import`](#matter-configimport)
-- [`matter config:list`](#matter-configlist)
-- [`matter config:set`](#matter-configset)
-- [`matter help [COMMANDS]`](#matter-help-commands)
+* [`matter config:delete`](#matter-configdelete)
+* [`matter config:export`](#matter-configexport)
+* [`matter config:get`](#matter-configget)
+* [`matter config:import`](#matter-configimport)
+* [`matter config:list`](#matter-configlist)
+* [`matter config:set`](#matter-configset)
+* [`matter help [COMMANDS]`](#matter-help-commands)
 
 ## `matter config:delete`
 
@@ -231,5 +227,4 @@ DESCRIPTION
 ```
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v5.2.9/src/commands/help.ts)_
-
 <!-- commandsstop -->
