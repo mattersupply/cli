@@ -51,7 +51,7 @@ jobs:
           git config --global user.email "username@users.noreply.github.com"
 
       - name: Bump Version
-        run: yarn version --prerelease --no-git-tag-version
+        run: yarn version --prerelease --preid pre --no-git-tag-version
 
       - name: Push Version Change
         run: |
