@@ -27,6 +27,7 @@ jobs:
       - run: yarn build
 
   update-readme:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     needs: build-and-test
     runs-on: ubuntu-latest
 
