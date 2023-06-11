@@ -27,6 +27,7 @@ jobs:
       - run: yarn update-readme
 
       - name: Create Pull Request
+        id: create-pr
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -41,3 +42,10 @@ jobs:
           labels: |
             documentation
             automated pr
+
+      - name: Auto Merge PR After Checks
+        # This non-sense is because we can't automatically push to the main branch from a PR
+        run: gh pr merge --auto --merge "$PR_URL"
+        env:
+          PR_URL: ${{ steps.create-pr.outputs.pull-request-url }}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
