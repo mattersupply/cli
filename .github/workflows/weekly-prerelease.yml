@@ -38,5 +38,5 @@ jobs:
           release_name: ${{ env.VERSION }}
           body: |
             Weekly Build
-          draft: true
+          draft: false
           prerelease: true
