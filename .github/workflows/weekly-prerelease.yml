@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      CI_COMMIT_MESSAGE: 'Update version to weekly'
+      CI_COMMIT_MESSAGE: 'Weekly Release'
       CI_COMMIT_AUTHOR: CI Bot <ci@msco.dev>
 
     steps:
