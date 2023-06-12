@@ -3,6 +3,9 @@ name: Update Documentation
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - 'README.md'
+      - 'package.json'
 
 jobs:
   update-readme:

@@ -3,8 +3,14 @@ name: Build & Test
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - 'README.md'
+      - 'package.json'
   pull_request:
     branches: [master]
+    paths-ignore:
+      - 'README.md'
+      - 'package.json'
 
 jobs:
   build-and-test:
