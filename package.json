@@ -9,7 +9,7 @@
   "bugs": "https://github.com/mattersupply/cli/issues",
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.345.0",
-    "@aws-sdk/client-ssm": "^3.345.0",
+    "@aws-sdk/client-ssm": "^3.421.0",
     "@aws-sdk/credential-providers": "^3.345.0",
     "@oclif/core": "^2",
     "@oclif/plugin-help": "^5",
